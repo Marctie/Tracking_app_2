@@ -3,7 +3,6 @@ import { inject, Injectable, Signal, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ILogin } from '../models/login';
 import { IAuthResponse } from '../models/auth-response';
-import { Observable } from 'rxjs';
 import { LOGINURL, LOGOUTURL } from '../models/constants';
 
 @Injectable({
@@ -36,8 +35,6 @@ export class UserService {
         console.log(error, 'errore');
       },
     });
-    console.log(this.isLoggedIn, 'servizio login');
-    // Logica extra (chiamata API, salvataggio token, ecc)
   }
 
   logout() {
@@ -55,17 +52,13 @@ export class UserService {
   }
   verifyAuth() {
     const tokenExp = new Date(localStorage.getItem('tokenExp') ?? new Date());
-    console.log('stampa prima dell if ', tokenExp, this.isLoggedIn(), tokenExp.getTime());
     if (tokenExp) {
-      if ((tokenExp.getTime() > new Date().getTime(), '->', new Date().getTime())) {
-        console.log('stampa nell if', tokenExp, this.isLoggedIn(), tokenExp.getTime());
-        //this.isLoggedIn.set(true);
+      if (tokenExp.getTime() > new Date().getTime()) {
+        this.isLoggedIn.set(true);
         console.log(
-          'stampa nell if dopo set',
-          tokenExp,
-          this.isLoggedIn(),
-          tokenExp.getTime(),
-          '->',
+          'loggato: ',      
+          this.isLoggedIn(),' maggiore: ',
+          tokenExp.getTime()>
           new Date().getTime()
         );
       }

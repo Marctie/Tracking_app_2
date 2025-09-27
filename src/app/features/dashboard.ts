@@ -248,9 +248,7 @@ export class Dashboard implements OnInit {
   ngOnInit() {
     this.loadVeicles();
     console.log(this.veicleList());
-    this.userLogin.login.name;
-    this.userLogin.verifyAuth()
-     
+    this.userLogin.login.name;  
   }
 
   loadVeicles(): void {
@@ -272,7 +270,6 @@ export class Dashboard implements OnInit {
     let allKeys = Object.keys(veicle) as (keyof Veicles)[];
     // filtra i campi che non vuoi mostrare
     let visibleKeys = allKeys.filter((key) => !this.hiddenFields.includes(key));
-    console.log('visible keys:', visibleKeys, veicle);
     return visibleKeys;
   }
 

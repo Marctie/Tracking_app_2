@@ -29,11 +29,11 @@ export class App implements OnInit {
   userService = inject(UserService);
   constructor() {}
   ngOnInit(): void {
-    this.userService.verifyAuth();
   }
 
   tologin() {
     console.log('stampa da app.ts ', this.router.url, this.userService.isLoggedIn());
+    this.userService.verifyAuth();
     if (this.userService.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
     } else {
@@ -42,5 +42,8 @@ export class App implements OnInit {
   }
   logout() {
     this.userService.logout();
+    if (confirm('Sei sicuro di voler effettuare il logout? Annullando rimarrai in sessione')) {
+      localStorage.removeItem('tokenExp');
+    }
   }
 }

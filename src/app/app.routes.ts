@@ -20,7 +20,7 @@ export const routes: Routes = [
 
   {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'landing-page',
     pathMatch: 'full',
   },
     { path: '**', component: ErrorPage },

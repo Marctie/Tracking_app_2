@@ -41,7 +41,6 @@ export class LandingPage implements OnInit {
   router = inject(Router);
 
   ngOnInit(): void {
-    this.userService.verifyAuth();
     this.userService.currentUrl.set(this.router.url);
     console.log('stampa da landing page', this.userService.currentUrl.set(this.router.url));
   }
