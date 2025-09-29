@@ -30,10 +30,10 @@ export class App implements OnInit {
   protected readonly title = signal('Tracking-app');
   router = inject(Router);
   userService = inject(UserService);
-  mqttService = inject(MyMqttService)
+  mqttService = inject(MyMqttService);
   constructor() {}
   ngOnInit(): void {
-    this.detectMqttMessage()
+    this.detectMqttMessage();
   }
 
   tologin() {
@@ -52,15 +52,17 @@ export class App implements OnInit {
     }
   }
 
-  detectMqttMessage(){
-    const topic= 'vehicles/position';
-    this.mqttService.topicSubscribe(topic).subscribe(
-      {
-        next: (response:IMqttMessage)=>{
-          const message:VeiclePosition= JSON.parse(response.payload.toString())
-          console.log('mqtt stampa', message)
-        }
-      }
-    )
+  detectMqttMessage(): void {
+    const topic = 'vehicles/#';
+    this.mqttService.topicSubscribe(topic).subscribe({
+      next: (response: IMqttMessage) => {
+        const message: any = JSON.parse(response.payload.toString());
+        console.log('mqtt->', message);
+      },
+
+      error: (response: IMqttMessage) => {
+        console.log('errore in mqtt', response);
+      },
+    });
   }
 }

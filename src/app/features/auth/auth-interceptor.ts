@@ -8,7 +8,6 @@ import {
 import { Observable, tap } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  console.log(req);
   const token = localStorage.getItem('token');
   let authReq = req;
   if (token) {

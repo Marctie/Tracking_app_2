@@ -27,7 +27,7 @@ export class UserService {
         localStorage.setItem('token', myToken);
         localStorage.setItem('tokenExp', tokenExp.toString());
         this.router.navigate(['/dashboard']);
-        console.log(response, myToken, 'risposta login');
+        console.log(response,'risposta login');
         this.isLoggedIn.set(true);
       },
       error: (error) => {

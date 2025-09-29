@@ -6,6 +6,9 @@ import { timeout } from 'rxjs';
 import { UserService } from '../../services/user-service';
 import { Router } from '@angular/router';
 import { VeicleModal } from './modals/veicle-modal';
+import { IMqttMessage } from 'ngx-mqtt';
+import { VeiclePosition } from '../../models/veicle-position';
+import { MyMqttService } from '../../services/mymqtt-service';
 
 @Component({
   selector: 'app-dashboard',
@@ -107,6 +110,7 @@ import { VeicleModal } from './modals/veicle-modal';
       </div>
       }
     </div>
+    <button> vai alla mappa test </button>
   `,
   styles: `
   .center{
@@ -367,10 +371,11 @@ export class Dashboard implements OnInit {
   titoloAlert: string | undefined;
   descrizioneAlert: string | undefined;
   selectedVeicle: Veicles | null = null;
+  mqttService = inject(MyMqttService);
 
   // Proprietà per la paginazione
   currentPage = signal(1);
-  itemsPerPage = 5;
+  itemsPerPage = 10;
   totalPages = signal(0);
 
   userLogin = inject(UserService);
@@ -484,5 +489,19 @@ export class Dashboard implements OnInit {
     }
 
     return pages;
+  }
+
+  detectMqttMessage(): void {
+    const topic = 'vehicles/#';
+    this.mqttService.topicSubscribe(topic).subscribe({
+      next: (response: IMqttMessage) => {
+        const message: VeiclePosition = JSON.parse(response.payload.toString());
+        console.log('mqtt->', message);
+      },
+
+      error: (response: IMqttMessage) => {
+        console.log('errore in mqtt', response);
+      },
+    });
   }
 }
