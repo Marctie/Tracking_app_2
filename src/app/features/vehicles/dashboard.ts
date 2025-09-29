@@ -1,14 +1,15 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VeicleService } from '../services/veicle-service';
-import { Veicles } from '../models/veicles';
+import { VeicleService } from '../../services/veicle-service';
+import { Veicles } from '../../models/veicles';
 import { timeout } from 'rxjs';
-import { UserService } from '../services/user-service';
+import { UserService } from '../../services/user-service';
 import { Router } from '@angular/router';
+import { VeicleModal } from './modals/veicle-modal';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule],
+  imports: [CommonModule, VeicleModal],
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ this.userLogin.firstName() }}</h1>
@@ -39,7 +40,15 @@ import { Router } from '@angular/router';
                     <ng-template #normalCell>{{ item[key] }}</ng-template>
                   </td>
                   <td class="center">
-                    <button>Localizza</button>
+                    <button (click)="goToMap()">Mostra Dettagli</button>
+                    @if (showModal()){
+                    <app-veiclemodal
+                      [titolo]="titoloAlert ?? ''"
+                      [testo]="descrizioneAlert ?? ''"
+                      (hideModal)="showModal.set($event)"
+                    >
+                    </app-veiclemodal>
+                    }
                   </td>
                 </tr>
               </ng-container>
@@ -239,16 +248,19 @@ import { Router } from '@angular/router';
   `,
 })
 export class Dashboard implements OnInit {
+  showModal = signal(false);
+  titoloAlert: string | undefined;
+  descrizioneAlert: string | undefined;
+
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
   veicleList = signal<Veicles[]>([]);
-    router = inject(Router);
-
+  router = inject(Router);
 
   ngOnInit() {
     this.loadVeicles();
     console.log(this.veicleList());
-    this.userLogin.login.name;  
+    this.userLogin.login.name;
   }
 
   loadVeicles(): void {
@@ -263,7 +275,7 @@ export class Dashboard implements OnInit {
   }
 
   // campi da nascondere nella tabella
-  private hiddenFields: (keyof Veicles)[] = ['id', 'lastPosition']; // campi nascosti 
+  private hiddenFields: (keyof Veicles)[] = ['id', 'lastPosition']; // campi nascosti
 
   // funzione per recuperare i campi e inserirli in html senza doverli scrivere piu volte
   recoveryVeicleKeys(veicle: Veicles): (keyof Veicles)[] {
@@ -292,7 +304,12 @@ export class Dashboard implements OnInit {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
+  }
+  goToMap() {
+    this.showModal.set(true)
+    this.titoloAlert = 'Dettaglio Veicolo';
+    this.descrizioneAlert = 'descrizione veicolo';
   }
 }

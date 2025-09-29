@@ -14,7 +14,12 @@ export const routes: Routes = [
 
   {
     path: 'dashboard',
-    loadComponent: () => import('./features/dashboard').then((m) => m.Dashboard),
+    loadComponent: () => import('./features/vehicles/dashboard').then((m) => m.Dashboard),
+    canActivate:[authGuard]
+  },
+  {
+    path: 'localize',
+    loadComponent: () => import('./features/vehicles/localize').then((m) => m.Localize),
     canActivate:[authGuard]
   },
 

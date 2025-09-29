@@ -5,12 +5,14 @@ import { importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/features/auth/auth-interceptor';
+import { MQTT_SERVICE_OPTIONS } from './app/models/constants';
+import { MqttModule } from 'ngx-mqtt';
 
 
 bootstrapApplication(App, {
   providers: [
-    importProvidersFrom(HttpClientModule),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor]))
+    provideHttpClient(withInterceptors([authInterceptor])),
+    importProvidersFrom(MqttModule.forRoot(MQTT_SERVICE_OPTIONS))
   ]
 });

@@ -1,6 +1,9 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { UserService } from './services/user-service';
+import { MyMqttService } from './services/mymqtt-service';
+import { IMqttMessage } from 'ngx-mqtt';
+import { VeiclePosition } from './models/veicle-position';
 
 @Component({
   selector: 'app-root',
@@ -27,8 +30,10 @@ export class App implements OnInit {
   protected readonly title = signal('Tracking-app');
   router = inject(Router);
   userService = inject(UserService);
+  mqttService = inject(MyMqttService)
   constructor() {}
   ngOnInit(): void {
+    this.detectMqttMessage()
   }
 
   tologin() {
@@ -45,5 +50,17 @@ export class App implements OnInit {
     if (confirm('Sei sicuro di voler effettuare il logout? Annullando rimarrai in sessione')) {
       localStorage.removeItem('tokenExp');
     }
+  }
+
+  detectMqttMessage(){
+    const topic= 'vehicles/position';
+    this.mqttService.topicSubscribe(topic).subscribe(
+      {
+        next: (response:IMqttMessage)=>{
+          const message:VeiclePosition= JSON.parse(response.payload.toString())
+          console.log('mqtt stampa', message)
+        }
+      }
+    )
   }
 }
