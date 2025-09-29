@@ -172,7 +172,7 @@ export class VeicleModal {
   @Input() titolo: string = '';
   @Input() testo: string = 'testo da mostrare ';
   @Input() selectedVeicle: Veicles | null = null;
-  @Output() hideModal = new EventEmitter<boolean>();
+  hideModal = output<boolean>();
   router = inject(Router);
 
   exitModal() {
