@@ -16,8 +16,8 @@ import { Router } from '@angular/router';
         </div>
       </section>
       <section id="features" class="features">
-        <div class="card">
-          <h3>Posizione in tempo reale</h3>
+      <div class="card">
+        <h3>Posizione in tempo reale</h3>
           <p>Visualizza dove sono i tuoi veicoli con aggiornamenti live.</p>
         </div>
         <div class="card">

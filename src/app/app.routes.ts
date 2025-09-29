@@ -18,12 +18,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
-  // pagina con mappe per test
   {
     path: 'localize',
     loadComponent: () => import('./features/vehicles/localize').then((m) => m.Localize),
     canActivate: [authGuard],
   },
+    // pagina con mappe per test
   {
     path: 'mappatest',
     loadComponent: () => import('./features/vehicles/mappatest').then((m) => m.Mappatest),

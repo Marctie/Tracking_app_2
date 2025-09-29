@@ -86,3 +86,68 @@ button{font:inherit}
     .actions{ display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem }
     .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
+.map-container {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+
+    .map-container h2 {
+      color: #007bff;
+      margin: 0;
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background-color: #218838;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      border-left: 4px solid #007bff;
+    }
+
+    .stat-item {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .stat-item strong {
+      color: #007bff;
+    }
+
+    .map-container p {
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    /* Contenitore della mappa con dimensioni fisse */
+    #map { 
+      height: 400px; 
+      width: 100%;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  

@@ -110,7 +110,6 @@ import { MyMqttService } from '../../services/mymqtt-service';
       </div>
       }
     </div>
-    <button routerLink="[/mappatest]" > vai alla mappa test </button>
   `,
   styles: `
   .center{
