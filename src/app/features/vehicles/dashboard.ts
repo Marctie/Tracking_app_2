@@ -13,10 +13,6 @@ import { VeicleModal } from './modals/veicle-modal';
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ this.userLogin.firstName() }}</h1>
-      <!-- <div class="buttons">
-        <button (click)="onClick()">Dashboard 1</button>
-        <button (click)="onClick()">Dashboard 2</button>
-      </div> -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -40,11 +36,12 @@ import { VeicleModal } from './modals/veicle-modal';
                     <ng-template #normalCell>{{ item[key] }}</ng-template>
                   </td>
                   <td class="center">
-                    <button (click)="goToMap()">Mostra Dettagli</button>
+                    <button (click)="goToMap(item)">Mostra Dettagli</button>
                     @if (showModal()){
                     <app-veiclemodal
                       [titolo]="titoloAlert ?? ''"
                       [testo]="descrizioneAlert ?? ''"
+                      [selectedVeicle]="selectedVeicle"
                       (hideModal)="showModal.set($event)"
                     >
                     </app-veiclemodal>
@@ -251,6 +248,7 @@ export class Dashboard implements OnInit {
   showModal = signal(false);
   titoloAlert: string | undefined;
   descrizioneAlert: string | undefined;
+  selectedVeicle: Veicles | null = null;
 
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
@@ -307,9 +305,12 @@ export class Dashboard implements OnInit {
       minute: '2-digit',
     });
   }
-  goToMap() {
-    this.showModal.set(true)
+
+  //funzione per l'apertura e chiusura della modale
+  goToMap(veicle: Veicles) {
+    this.selectedVeicle = veicle;
+    this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
-    this.descrizioneAlert = 'descrizione veicolo';
+    this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
   }
 }

@@ -1,110 +1,198 @@
 import { Component, Input, Output, EventEmitter, inject, output } from '@angular/core';
 import { Router } from '@angular/router';
+import { Veicles } from '../../../models/veicles';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-veiclemodal',
-  imports: [],
+  imports: [CommonModule],
   template: `
-    <div class="alert-container" (click)="onOverlayClick($event)">
-      <h1 class="alert-title">{{titolo}}</h1>
-      <p class="alert-text">{{testo}}</p>
-      <button style="color:white" class="go-back-button blackbtn" (click)="exitModal()">
-        Chiudi
-      </button>
+    <!-- <div class="modal-overlay" (click)="onOverlayClick($event)"> -->
+    <div class="modal-overlay">
+      <!-- <div class="alert-container" (click)="$event.stopPropagation()"> -->
+      <div class="alert-container">
+        <h1 class="alert-title">{{ titolo }}</h1>
+        <p class="alert-text">{{ testo }}</p>
+        <div class="modal-body">
+          <div class="map-container">
+            <p>Contenitore per la mappa</p>
+          </div>
+
+          <div class="details-container">
+            <p>Dettagli del veicolo</p>
+            @if (selectedVeicle){
+            <div class="detail-row"><strong>Targa:</strong> {{ selectedVeicle.licensePlate }}</div>
+            <div class="detail-row"><strong>Modello:</strong> {{ selectedVeicle.model }}</div>
+            <div class="detail-row"><strong>Marca:</strong> {{ selectedVeicle.brand }}</div>
+            <div class="detail-row"><strong>Stato:</strong> {{ selectedVeicle.status }}</div>
+            <div class="detail-row">
+              <strong>Creato il:</strong> {{ formatDate(selectedVeicle.createdAt) }}
+            </div>
+            @if(selectedVeicle.lastPosition){
+            <strong>Ultima posizione:</strong>
+            <div class="position-info">
+              Lat: {{ selectedVeicle.lastPosition.latitude }}<br />
+              Lng: {{ selectedVeicle.lastPosition.longitude }}
+            </div>
+            } }
+          </div>
+          <!-- </div>  -->
+        </div>
+        <div class="actions">
+          <button class="blackbtn" (click)="exitModal()">Chiudi</button>
+        </div>
+      </div>
+      <!-- </div> -->
     </div>
   `,
   styles: `
- .modal-overlay {
- position: fixed;
- top: 0; left: 0; width: 100vw; height: 100vh;
- background: rgba(0,0,0,0.10);
- z-index: 99;
- display: flex;
- align-items: center;
-justify-content: center;
+
+tr{
+font-size:20px;
+}
+
+.detail-row {
+  margin-bottom: 12px;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-row strong {
+  color: #2563eb;
+  margin-right: 8px;
+}
+
+.position-info {
+  font-size: 0.9em;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.10);
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .alert-container {
- position: absolute;
-top: 24%;
- left: 50%;
- transform: translateX(-50%);
- background: var(--card-bg, #fff);
-color: var(--text, #0f172a);
- padding: 2rem 2.5rem;
-border-radius: 12px;
- box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
- z-index: 100;
- text-align: center;
- width: 35%;
- max-width: 80%;
- min-width: 30%;
- font-family: var(--font-family, Inter, 'Segoe UI', Roboto, Arial, sans-serif);
+    background: var(--card-bg, #fff);
+    color: var(--text, #0f172a);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    z-index: 100;
+    width: 80%;
+    max-width: 1000px;
+    font-family: var(--font-family, Inter, 'Segoe UI', Roboto, Arial, sans-serif);
+    box-sizing: border-box;
 }
 
 .alert-title {
- margin-top: 0;
- margin-bottom: 1rem;
- font-size: 1.5rem;
- color: var(--accent, #2563eb);
- font-weight: 600;
- letter-spacing: 0.01em;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: var(--accent, #2563eb);
+    font-weight: 600;
 }
 
 .alert-text {
- margin-bottom: 1.5rem;
-font-size: 1.07rem;
- line-height: 1.6;
- color: var(--muted, #6b7280);
- font-weight: 400;
+    margin: 0 0 1rem 0;
+    color: var(--muted, #6b7280);
+    font-size: 0.98rem;
 }
 
-.greenbtn {
- background: var(--accent, #2563eb);
- color: #fff;
- border: none;
- border-radius: 6px;
- padding: 0.6rem 1.2rem;
- font-size: 1rem;
- margin: 0 8px;
- cursor: pointer;
- box-shadow: 0 1px 3px rgba(0,0,0,0.06);
- transition: background 0.18s;
+.modal-body {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
 }
 
-.greenbtn:hover {
- background: #1745a2;
+/* left: map, right: details */
+.map-container {
+    flex: 1.4;
+    min-height: 280px;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    border: 1px dashed rgba(15,23,42,0.06);
 }
 
+.details-container {
+    flex: 1;
+    min-height: 280px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    color: #0f172a;
+    border: 1px solid rgba(15,23,42,0.04);
+    overflow: auto;
+}
+
+/* actions */
+.actions {
+    text-align: right;
+}
+
+/* buttons */
 .blackbtn {
- background: var(--text, #0f172a);
- color: #fff;
- border: none;
- border-radius: 6px;
- padding: 0.6rem 1.2rem;
- font-size: 1rem;
- margin: 0 8px;
- cursor: pointer;
- box-shadow: 0 1px 3px rgba(0,0,0,0.06);
- transition: background 0.18s;
+    background: var(--text, #0f172a);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.95rem;
+    cursor: pointer;
 }
 
-.blackbtn:hover {
-background: #12243a;
+/* responsive */
+@media (max-width: 700px) {
+    .modal-body {
+        flex-direction: column;
+    }
+    .map-container, .details-container {
+        min-height: 180px;
+    }
 }
-
-  `,
+    `,
 })
 export class VeicleModal {
   @Input() titolo: string = '';
   @Input() testo: string = 'testo da mostrare ';
-  hideModal = output<boolean>();
+  @Input() selectedVeicle: Veicles | null = null;
+  @Output() hideModal = new EventEmitter<boolean>();
   router = inject(Router);
 
   exitModal() {
     this.hideModal.emit(false);
   }
+
   onOverlayClick(event: MouseEvent): void {
     this.hideModal.emit(false);
+  }
+
+  formatDate(data: string | Date): string {
+    if (!data) return '';
+    const d = new Date(data);
+    if (isNaN(d.getTime())) return String(data);
+    return d.toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 }
