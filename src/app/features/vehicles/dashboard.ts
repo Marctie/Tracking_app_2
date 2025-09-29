@@ -12,7 +12,7 @@ import { VeicleModal } from './modals/veicle-modal';
   imports: [CommonModule, VeicleModal],
   template: `
     <div class="dashboard-container">
-      <h1>Benvenuto sig.{{ this.userLogin.firstName() }}</h1>
+      <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
       <div class="table-wrapper">
         <table>
           <thead>
@@ -26,33 +26,86 @@ import { VeicleModal } from './modals/veicle-modal';
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let item of veicleList()">
-              <ng-container *ngFor="let chunk of chunkKeys(recoveryVeicleKeys(item), 7)">
-                <tr>
-                  <td *ngFor="let key of chunk">
-                    <ng-container *ngIf="key === 'createdAt'; else normalCell">
-                      {{ formatDataIt(item[key]) }}
-                    </ng-container>
-                    <ng-template #normalCell>{{ item[key] }}</ng-template>
-                  </td>
-                  <td class="center">
-                    <button (click)="goToMap(item)">Mostra Dettagli</button>
-                    @if (showModal()){
-                    <app-veiclemodal
-                      [titolo]="titoloAlert ?? ''"
-                      [testo]="descrizioneAlert ?? ''"
-                      [selectedVeicle]="selectedVeicle"
-                      (hideModal)="showModal.set($event)"
-                    >
-                    </app-veiclemodal>
-                    }
-                  </td>
-                </tr>
-              </ng-container>
-            </ng-container>
+            <!-- Loop attraverso i veicoli paginati -->
+            @for (item of paginatedVeicles(); track item.id) {
+            <!-- Loop attraverso i chunk di proprietà del veicolo -->
+            @for (chunk of chunkKeys(recoveryVeicleKeys(item), 7); track $index) {
+            <tr>
+              <!-- Loop attraverso ogni proprietà del chunk -->
+              @for (key of chunk; track key) {
+              <td>
+                @if (key === 'createdAt') {
+                {{ formatDataIt(item[key]) }}
+                } @else {
+                {{ item[key] }}
+                }
+              </td>
+              }
+              <td class="center">
+                <button (click)="goToMap(item)">Mostra Dettagli</button>
+                @if (showModal()) {
+                <app-veiclemodal
+                  [titolo]="titoloAlert ?? ''"
+                  [testo]="descrizioneAlert ?? ''"
+                  [selectedVeicle]="selectedVeicle"
+                  (hideModal)="showModal.set($event)"
+                >
+                </app-veiclemodal>
+                }
+              </td>
+            </tr>
+            } }
           </tbody>
         </table>
       </div>
+
+      <!-- Controlli paginazione -->
+      @if (totalPages() > 1) {
+      <div class="pagination-container">
+        <div class="pagination-info">
+          Pagina {{ currentPage() }} di {{ totalPages() }} ({{ veicleList().length }} veicoli
+          totali)
+        </div>
+        <div class="pagination-controls">
+          <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage() === 1">
+            &#171; Prima
+          </button>
+          <button
+            class="page-btn"
+            (click)="goToPage(currentPage() - 1)"
+            [disabled]="currentPage() === 1"
+          >
+            &#8249; Precedente
+          </button>
+          <span class="page-numbers">
+            <!-- Loop attraverso i numeri di pagina -->
+            @for (page of getPageNumbers(); track page) {
+            <button
+              class="page-btn"
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+            }
+          </span>
+          <button
+            class="page-btn"
+            (click)="goToPage(currentPage() + 1)"
+            [disabled]="currentPage() === totalPages()"
+          >
+            Successiva &#8250;
+          </button>
+          <button
+            class="page-btn"
+            (click)="goToPage(totalPages())"
+            [disabled]="currentPage() === totalPages()"
+          >
+            Ultima &#187;
+          </button>
+        </div>
+      </div>
+      }
     </div>
   `,
   styles: `
@@ -242,6 +295,71 @@ import { VeicleModal } from './modals/veicle-modal';
     font-weight: bold;
     color: #28a745;
   }
+
+  /* Stili paginazione */
+  .pagination-container {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .pagination-info {
+    margin-bottom: 10px;
+    color: #6c757d;
+    font-size: 14px;
+  }
+
+  .pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    padding: 8px 12px;
+    background-color: #fff;
+    border: 1px solid #007bff;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .page-btn.active {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+  }
+
+  .page-btn:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    border-color: #dee2e6;
+  }
+
+  .page-numbers {
+    display: flex;
+    gap: 2px;
+  }
+
+  @media (max-width: 768px) {
+    .pagination-controls {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .page-numbers {
+      order: -1;
+    }
+  }
   `,
 })
 export class Dashboard implements OnInit {
@@ -250,9 +368,15 @@ export class Dashboard implements OnInit {
   descrizioneAlert: string | undefined;
   selectedVeicle: Veicles | null = null;
 
+  // Proprietà per la paginazione
+  currentPage = signal(1);
+  itemsPerPage = 5;
+  totalPages = signal(0);
+
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
   veicleList = signal<Veicles[]>([]);
+  paginatedVeicles = signal<Veicles[]>([]);
   router = inject(Router);
 
   ngOnInit() {
@@ -264,6 +388,7 @@ export class Dashboard implements OnInit {
   loadVeicles(): void {
     this.veicleService.getListVeicle().subscribe((response) => {
       this.veicleList.set(response.items);
+      this.updatePagination();
       console.log('mia response', this.veicleList());
     });
   }
@@ -312,5 +437,52 @@ export class Dashboard implements OnInit {
     this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
     this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
+  }
+
+  // Metodi per la paginazione
+  updatePagination(): void {
+    const total = Math.ceil(this.veicleList().length / this.itemsPerPage);
+    this.totalPages.set(total);
+
+    if (this.currentPage() > total && total > 0) {
+      this.currentPage.set(total);
+    }
+
+    this.updatePaginatedVeicles();
+  }
+
+  updatePaginatedVeicles(): void {
+    const startIndex = (this.currentPage() - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    const paginated = this.veicleList().slice(startIndex, endIndex);
+    this.paginatedVeicles.set(paginated);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+      this.updatePaginatedVeicles();
+    }
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+
+    // Mostra al massimo 5 numeri di pagina
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, start + 4);
+
+    // Aggiusta se siamo verso la fine
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
   }
 }
