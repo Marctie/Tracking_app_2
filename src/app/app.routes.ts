@@ -15,12 +15,18 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./features/vehicles/dashboard').then((m) => m.Dashboard),
-    canActivate:[authGuard]
+    canActivate: [authGuard],
   },
+
+  // pagina con mappe per test
   {
     path: 'localize',
     loadComponent: () => import('./features/vehicles/localize').then((m) => m.Localize),
-    canActivate:[authGuard]
+    canActivate: [authGuard],
+  },
+  {
+    path: 'mappatest',
+    loadComponent: () => import('./features/vehicles/mappatest').then((m) => m.Mappatest),
   },
 
   {
@@ -28,5 +34,5 @@ export const routes: Routes = [
     redirectTo: 'landing-page',
     pathMatch: 'full',
   },
-    { path: '**', component: ErrorPage },
+  { path: '**', component: ErrorPage },
 ];

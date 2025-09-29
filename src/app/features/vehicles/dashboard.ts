@@ -4,7 +4,7 @@ import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
 import { timeout } from 'rxjs';
 import { UserService } from '../../services/user-service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { VeicleModal } from './modals/veicle-modal';
 import { IMqttMessage } from 'ngx-mqtt';
 import { VeiclePosition } from '../../models/veicle-position';
@@ -12,7 +12,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, VeicleModal],
+  imports: [CommonModule, VeicleModal, RouterLink],
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
@@ -110,7 +110,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
       </div>
       }
     </div>
-    <button> vai alla mappa test </button>
+    <button routerLink="[/mappatest]" > vai alla mappa test </button>
   `,
   styles: `
   .center{
