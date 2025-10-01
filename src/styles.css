@@ -104,6 +104,7 @@ button{font:inherit}
     }
 
     .refresh-btn {
+      margin-top: 20px;
       padding: 8px 16px;
       background-color: #28a745;
       color: white;

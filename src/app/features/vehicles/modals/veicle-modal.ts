@@ -1,7 +1,23 @@
-import { Component, Input, Output, EventEmitter, inject, output } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+  output,
+  OnInit,
+  signal,
+  AfterViewInit,
+  DestroyRef,
+  ViewChild,
+  ElementRef,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { Veicles } from '../../../models/veicles';
 import { CommonModule } from '@angular/common';
+import * as L from 'leaflet';
+import { VeicleService } from '../../../services/veicle-service';
 
 @Component({
   selector: 'app-veiclemodal',
@@ -15,7 +31,7 @@ import { CommonModule } from '@angular/common';
         <p class="alert-text">{{ testo }}</p>
         <div class="modal-body">
           <div class="map-container">
-            <p>Contenitore per la mappa</p>
+            <div id="map" #leafletMap></div>
           </div>
 
           <div class="details-container">
@@ -35,6 +51,7 @@ import { CommonModule } from '@angular/common';
               Lng: {{ selectedVeicle.lastPosition.longitude }}
             </div>
             } }
+            <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Posizione</button>
           </div>
           <!-- </div>  -->
         </div>
@@ -168,12 +185,124 @@ font-size:20px;
 }
     `,
 })
-export class VeicleModal {
+export class VeicleModal implements OnInit, AfterViewInit {
   @Input() titolo: string = '';
   @Input() testo: string = 'testo da mostrare ';
   @Input() selectedVeicle: Veicles | null = null;
   hideModal = output<boolean>();
   router = inject(Router);
+  veicleList = signal<Veicles[]>([]);
+  private veicleService = inject(VeicleService);
+  destroy = inject(DestroyRef);
+  @ViewChild('leafletMap')
+  private mapElement: ElementRef | undefined;
+
+  private map!: L.Map;
+  private markers: L.Marker[] = []; // Array per tenere traccia dei marker
+
+  ngOnInit(): void {
+    // Il modal riceve il veicolo selezionato dal dashboard
+    // Non serve caricare tutti i veicoli qui
+    console.log('Modal inizializzato con veicolo:', this.selectedVeicle?.licensePlate);
+  }
+
+  ngAfterViewInit(): void {
+    // Configura le icone di Leaflet per evitare errori 404
+    this.setupLeafletIcons();
+
+    // Inizializza solo la mappa - NON caricare tutti i veicoli
+    this.initMap();
+  }
+
+  // Metodo per configurare le icone e rimuovere l'ombra
+  private setupLeafletIcons(): void {
+    // Rimuove la funzione che cerca automaticamente le icone
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+    // Configura le icone per evitare errori 404
+    L.Icon.Default.mergeOptions({
+      // Icona SVG inline per evitare file esterni
+      iconUrl:
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZGM2ZTI2Ii8+Cjwvc3ZnPg==',
+      iconRetinaUrl:
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZGM2ZTI2Ii8+Cjwvc3ZnPg==',
+      // IMPORTANTE: Rimuove completamente l'ombra per evitare errore 404
+      shadowUrl: null,
+      shadowSize: null,
+      shadowAnchor: null,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+    });
+
+    console.log('Icone Leaflet configurate - nessun errore 404 per marker-shadow.png');
+  }
+
+  initMap(): void {
+    // Crea la mappa centrata sull'Italia
+    this.map = L.map(this.mapElement?.nativeElement, {
+      center: [41.9028, 12.4964],
+      zoom: 6,
+    });
+
+    // Aggiunge le tile della mappa
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(this.map);
+
+    // MOSTRA SOLO il veicolo selezionato dal dashboard
+    this.showSelectedVehicleOnMap();
+  }
+
+  // Metodo elementare per mostrare il veicolo selezionato
+  private showSelectedVehicleOnMap(): void {
+    console.log('Veicolo selezionato ricevuto:', this.selectedVeicle);
+
+    // Controllo se abbiamo un veicolo selezionato
+    if (!this.selectedVeicle) {
+      console.log('ERRORE: Nessun veicolo selezionato!');
+      return;
+    }
+
+    // Controllo se il veicolo ha una posizione
+    if (!this.selectedVeicle.lastPosition) {
+      console.log('ERRORE: Il veicolo non ha una posizione!');
+      return;
+    }
+
+    const lat = this.selectedVeicle.lastPosition.latitude;
+    const lng = this.selectedVeicle.lastPosition.longitude;
+
+    // Controllo se le coordinate sono valide
+    if (!lat || !lng) {
+      console.log('ERRORE: Coordinate non valide!', lat, lng);
+      return;
+    }
+
+    console.log('Creo marker per:', this.selectedVeicle.licensePlate, 'a:', lat, lng);
+
+    // Crea il marker del veicolo
+    const marker = L.marker([lat, lng]).addTo(this.map);
+
+    // Popup semplice con info veicolo
+    const popup = `
+      <div>
+        <h4>🚗 ${this.selectedVeicle.licensePlate}</h4>
+        <p><b>Modello:</b> ${this.selectedVeicle.model}</p>
+        <p><b>Velocità:</b> ${this.selectedVeicle.lastPosition.speed} km/h</p>
+        <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
+      </div>
+    `;
+
+    marker.bindPopup(popup).openPopup();
+
+    // Centra la mappa sul veicolo
+    this.map.setView([lat, lng], 15);
+
+    // Salva il marker per poterlo rimuovere in seguito
+    this.markers.push(marker);
+  }
 
   exitModal() {
     this.hideModal.emit(false);
@@ -194,5 +323,21 @@ export class VeicleModal {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+  // Metodo semplice per aggiornare la posizione (se necessario)
+  public refreshVeicles(): void {
+    console.log('Aggiornamento posizione per:', this.selectedVeicle?.licensePlate);
+    // Rimuove marker esistenti
+    this.clearMarkers();
+    // Mostra di nuovo il veicolo aggiornato
+    this.showSelectedVehicleOnMap();
+  }
+
+  // Rimuove tutti i marker dalla mappa
+  private clearMarkers(): void {
+    this.markers.forEach((marker) => {
+      this.map.removeLayer(marker);
+    });
+    this.markers = [];
   }
 }

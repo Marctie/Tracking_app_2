@@ -9,10 +9,10 @@ import { VeiclePosition } from '../../models/veicle-position';
   imports: [],
   template: `
     <div class="map-container">
-      <!-- <div class="map-header">
+       <div class="map-header">
         <h2>Mappa Veicoli in Tempo Reale</h2>
         <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Posizioni</button>
-      </div> -->
+      </div> 
       <p>Visualizzazione delle posizioni dei veicoli dal database</p>
 
       <!-- Statistiche veicoli -->
@@ -33,6 +33,7 @@ import { VeiclePosition } from '../../models/veicle-position';
     .map-container {
       padding: 20px;
       font-family: Arial, sans-serif;
+      height:100%;
     }
 
     .map-container h2 {

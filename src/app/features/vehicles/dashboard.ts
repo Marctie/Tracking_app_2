@@ -109,6 +109,13 @@ import { MyMqttService } from '../../services/mymqtt-service';
         </div>
       </div>
       }
+      <div class="stats">
+        <span class="stat-item">
+          Veicoli totali: <strong>{{ veicleList().length }}</strong>
+        </span>
+        <span class="stat-item">
+          Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
+        </span>
     </div>
   `,
   styles: `
@@ -366,6 +373,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
   `,
 })
 export class Dashboard implements OnInit {
+
   showModal = signal(false);
   titoloAlert: string | undefined;
   descrizioneAlert: string | undefined;
@@ -502,5 +510,12 @@ export class Dashboard implements OnInit {
         console.log('errore in mqtt', response);
       },
     });
+  }
+    // Metodo per contare i veicoli con posizione
+  public getVeiclesWithPosition(): number {
+    return this.veicleList().filter(
+      (veicle) =>
+        veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude
+    ).length;
   }
 }
