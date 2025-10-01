@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
@@ -50,7 +50,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
                 <app-veiclemodal
                   [titolo]="titoloAlert ?? ''"
                   [testo]="descrizioneAlert ?? ''"
-                  [selectedVeicle]="selectedVeicle"
+                  [selectedVeicle]="selectedVeicle()"
                   (hideModal)="showModal.set($event)"
                 >
                 </app-veiclemodal>
@@ -116,6 +116,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
         <span class="stat-item">
           Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
         </span>
+      </div>
     </div>
   `,
   styles: `
@@ -373,11 +374,10 @@ import { MyMqttService } from '../../services/mymqtt-service';
   `,
 })
 export class Dashboard implements OnInit {
-
   showModal = signal(false);
   titoloAlert: string | undefined;
   descrizioneAlert: string | undefined;
-  selectedVeicle: Veicles | null = null;
+  selectedVeicle = signal<Veicles>({} as Veicles);
   mqttService = inject(MyMqttService);
 
   // Proprietà per la paginazione
@@ -391,8 +391,21 @@ export class Dashboard implements OnInit {
   paginatedVeicles = signal<Veicles[]>([]);
   router = inject(Router);
 
+  constructor() {
+    effect(() => {
+      this.loadVeicles();
+
+      if (this.selectedVeicle()) {
+        console.log('entro');
+        this.selectedVeicle.set(
+          this.veicleList().find((v) => v === this.selectedVeicle()) ?? ({} as Veicles)
+        );
+      }
+    });
+  }
+
   ngOnInit() {
-    this.loadVeicles();
+    // this.loadVeicles();
     console.log(this.veicleList());
     this.userLogin.login.name;
   }
@@ -445,7 +458,7 @@ export class Dashboard implements OnInit {
 
   //funzione per l'apertura e chiusura della modale
   goToMap(veicle: Veicles) {
-    this.selectedVeicle = veicle;
+    this.selectedVeicle.set(veicle);
     this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
     this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
@@ -511,7 +524,7 @@ export class Dashboard implements OnInit {
       },
     });
   }
-    // Metodo per contare i veicoli con posizione
+  // Metodo per contare i veicoli con posizione
   public getVeiclesWithPosition(): number {
     return this.veicleList().filter(
       (veicle) =>

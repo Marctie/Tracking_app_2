@@ -12,6 +12,7 @@ import {
   ViewChild,
   ElementRef,
   viewChild,
+  input,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Veicles } from '../../../models/veicles';
@@ -36,19 +37,19 @@ import { VeicleService } from '../../../services/veicle-service';
 
           <div class="details-container">
             <p>Dettagli del veicolo</p>
-            @if (selectedVeicle){
-            <div class="detail-row"><strong>Targa:</strong> {{ selectedVeicle.licensePlate }}</div>
-            <div class="detail-row"><strong>Modello:</strong> {{ selectedVeicle.model }}</div>
-            <div class="detail-row"><strong>Marca:</strong> {{ selectedVeicle.brand }}</div>
-            <div class="detail-row"><strong>Stato:</strong> {{ selectedVeicle.status }}</div>
+            @if (selectedVeicle()){
+            <div class="detail-row"><strong>Targa:</strong> {{ selectedVeicle()?.licensePlate }}</div>
+            <div class="detail-row"><strong>Modello:</strong> {{ selectedVeicle()?.model }}</div>
+            <div class="detail-row"><strong>Marca:</strong> {{ selectedVeicle()?.brand }}</div>
+            <div class="detail-row"><strong>Stato:</strong> {{ selectedVeicle()?.status }}</div>
             <div class="detail-row">
-              <strong>Creato il:</strong> {{ formatDate(selectedVeicle.createdAt) }}
+              <strong>Creato il:</strong> {{ formatDate(selectedVeicle()!.createdAt) }}
             </div>
-            @if(selectedVeicle.lastPosition){
+            @if(selectedVeicle()?.lastPosition){
             <strong>Ultima posizione:</strong>
             <div class="position-info">
-              Lat: {{ selectedVeicle.lastPosition.latitude }}<br />
-              Lng: {{ selectedVeicle.lastPosition.longitude }}
+              Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
+              Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
             </div>
             } }
             <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Posizione</button>
@@ -188,7 +189,7 @@ font-size:20px;
 export class VeicleModal implements OnInit, AfterViewInit {
   @Input() titolo: string = '';
   @Input() testo: string = 'testo da mostrare ';
-  @Input() selectedVeicle: Veicles | null = null;
+  selectedVeicle = input<Veicles>()
   hideModal = output<boolean>();
   router = inject(Router);
   veicleList = signal<Veicles[]>([]);
@@ -196,14 +197,13 @@ export class VeicleModal implements OnInit, AfterViewInit {
   destroy = inject(DestroyRef);
   @ViewChild('leafletMap')
   private mapElement: ElementRef | undefined;
-
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
 
   ngOnInit(): void {
     // Il modal riceve il veicolo selezionato dal dashboard
     // Non serve caricare tutti i veicoli qui
-    console.log('Modal inizializzato con veicolo:', this.selectedVeicle?.licensePlate);
+    console.log('Modal inizializzato con veicolo:', this.selectedVeicle()?.licensePlate);
   }
 
   ngAfterViewInit(): void {
@@ -266,13 +266,13 @@ export class VeicleModal implements OnInit, AfterViewInit {
     }
 
     // Controllo se il veicolo ha una posizione
-    if (!this.selectedVeicle.lastPosition) {
+    if (!this.selectedVeicle()?.lastPosition) {
       console.log('ERRORE: Il veicolo non ha una posizione!');
       return;
     }
 
-    const lat = this.selectedVeicle.lastPosition.latitude;
-    const lng = this.selectedVeicle.lastPosition.longitude;
+    const lat = this.selectedVeicle()?.lastPosition.latitude;
+    const lng = this.selectedVeicle()?.lastPosition.longitude;
 
     // Controllo se le coordinate sono valide
     if (!lat || !lng) {
@@ -280,7 +280,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
       return;
     }
 
-    console.log('Creo marker per:', this.selectedVeicle.licensePlate, 'a:', lat, lng);
+    console.log('Creo marker per:', this.selectedVeicle()?.licensePlate, 'a:', lat, lng);
 
     // Crea il marker del veicolo
     const marker = L.marker([lat, lng]).addTo(this.map);
@@ -288,9 +288,9 @@ export class VeicleModal implements OnInit, AfterViewInit {
     // Popup semplice con info veicolo
     const popup = `
       <div>
-        <h4>🚗 ${this.selectedVeicle.licensePlate}</h4>
-        <p><b>Modello:</b> ${this.selectedVeicle.model}</p>
-        <p><b>Velocità:</b> ${this.selectedVeicle.lastPosition.speed} km/h</p>
+        <h4>🚗 ${this.selectedVeicle()?.licensePlate}</h4>
+        <p><b>Modello:</b> ${this.selectedVeicle()?.model}</p>
+        <p><b>Velocità:</b> ${this.selectedVeicle()?.lastPosition.speed} km/h</p>
         <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
       </div>
     `;
@@ -326,7 +326,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
   }
   // Metodo semplice per aggiornare la posizione (se necessario)
   public refreshVeicles(): void {
-    console.log('Aggiornamento posizione per:', this.selectedVeicle?.licensePlate);
+    console.log('Aggiornamento posizione per:', this.selectedVeicle()?.licensePlate);
     // Rimuove marker esistenti
     this.clearMarkers();
     // Mostra di nuovo il veicolo aggiornato
