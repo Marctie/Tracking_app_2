@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, inject, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, signal } from '@angular/core';
 import * as L from 'leaflet';
 import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
@@ -9,10 +9,13 @@ import { VeiclePosition } from '../../models/veicle-position';
   imports: [],
   template: `
     <div class="map-container">
-       <div class="map-header">
+      <div class="map-header">
         <h2>Mappa Veicoli in Tempo Reale</h2>
-        <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Posizioni</button>
-      </div> 
+        <div class="header-controls">
+          <span class="auto-update-indicator">🔄 Aggiornamento automatico ogni 5s</span>
+          <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Ora</button>
+        </div>
+      </div>
       <p>Visualizzazione delle posizioni dei veicoli dal database</p>
 
       <!-- Statistiche veicoli -->
@@ -46,6 +49,21 @@ import { VeiclePosition } from '../../models/veicle-position';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .auto-update-indicator {
+      font-size: 12px;
+      color: #28a745;
+      background-color: #d4edda;
+      padding: 4px 8px;
+      border-radius: 3px;
+      border: 1px solid #c3e6cb;
     }
 
     .refresh-btn {
@@ -97,9 +115,13 @@ import { VeiclePosition } from '../../models/veicle-position';
     }
   `,
 })
-export class Mappatest implements AfterViewInit, OnInit {
+export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
+
+  // Timer per l'aggiornamento automatico ogni 5 secondi
+  private autoUpdateInterval: any = null;
+  private readonly UPDATE_INTERVAL = 5000; // 5 secondi in millisecondi
 
   // Injection del servizio e signal per i dati
   private veicleService = inject(VeicleService);
@@ -108,6 +130,9 @@ export class Mappatest implements AfterViewInit, OnInit {
   ngOnInit(): void {
     // Carica i dati dei veicoli
     this.loadVeicles();
+
+    // Avvia l'aggiornamento automatico ogni 5 secondi
+    this.startAutoUpdate();
   }
 
   ngAfterViewInit(): void {
@@ -116,6 +141,41 @@ export class Mappatest implements AfterViewInit, OnInit {
 
     // Inizializza la mappa dopo che la vista è stata caricata
     this.initMap();
+  }
+
+  ngOnDestroy(): void {
+    // Ferma l'aggiornamento automatico quando il componente viene distrutto
+    // per evitare memory leak e chiamate API non necessarie
+    this.stopAutoUpdate();
+  }
+
+  /**
+   * Avvia l'aggiornamento automatico delle posizioni dei veicoli
+   * Viene chiamato ogni 5 secondi per aggiornare i dati in tempo reale
+   */
+  private startAutoUpdate(): void {
+    // Se esiste già un timer, lo fermiamo prima di crearne uno nuovo
+    this.stopAutoUpdate();
+
+    console.log('🚀 Avvio aggiornamento automatico ogni 5 secondi');
+
+    // Crea un nuovo timer che si ripete ogni 5 secondi
+    this.autoUpdateInterval = setInterval(() => {
+      console.log('🔄 Aggiornamento automatico posizioni veicoli...');
+      this.loadVeicles(); // Ricarica i dati dal server
+    }, this.UPDATE_INTERVAL);
+  }
+
+  /**
+   * Ferma l'aggiornamento automatico delle posizioni
+   * Utile per evitare memory leak quando il componente viene distrutto
+   */
+  private stopAutoUpdate(): void {
+    if (this.autoUpdateInterval) {
+      console.log('⏹️ Fermo aggiornamento automatico');
+      clearInterval(this.autoUpdateInterval);
+      this.autoUpdateInterval = null;
+    }
   }
 
   private setupLeafletIcons(): void {
@@ -148,12 +208,15 @@ export class Mappatest implements AfterViewInit, OnInit {
   }
 
   private initMap(): void {
-    // Centra la mappa sull'Italia (Roma)
-    this.map = L.map('map').setView([41.9028, 12.4964], 6);
+    // Centra la mappa su Roma con zoom fisso
+    // Coordinate di Roma: Latitudine 41.9028, Longitudine 12.4964
+    // Zoom level 12 per vedere bene la zona metropolitana di Roma
+    this.map = L.map('map').setView([41.9028, 12.4964], 12);
 
     // Aggiunge il layer delle tile di OpenStreetMap
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+      maxZoom: 15, // Limita lo zoom massimo per mantenere il focus su Roma
+      minZoom: 10, // Limita lo zoom minimo per non allontanarsi troppo da Roma
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(this.map);
 
@@ -174,10 +237,9 @@ export class Mappatest implements AfterViewInit, OnInit {
       }
     });
 
-    // Centra la mappa sui marker se ce ne sono
-    if (this.markers.length > 0) {
-      this.fitMapToMarkers();
-    }
+    // NOTA: Non chiamiamo fitMapToMarkers() per mantenere lo zoom fisso su Roma
+    // La mappa rimane centrata su Roma indipendentemente dalla posizione dei veicoli
+    console.log(`📍 Aggiunti ${this.markers.length} marker sulla mappa (zoom fisso su Roma)`);
   }
 
   private addVeicleMarker(veicle: Veicles): void {
@@ -237,9 +299,14 @@ export class Mappatest implements AfterViewInit, OnInit {
     });
   }
 
-  // Metodo pubblico per ricaricare i dati (utile per aggiornamenti)
+  // Metodo pubblico per ricaricare i dati manualmente
+  // Utile quando l'utente clicca il pulsante "Aggiorna Posizioni"
   public refreshVeicles(): void {
+    console.log("🔄 Aggiornamento manuale richiesto dall'utente");
     this.loadVeicles();
+
+    // Riavvia il timer automatico per sincronizzare il timing
+    this.startAutoUpdate();
   }
 
   // Metodo per contare i veicoli con posizione
