@@ -4,6 +4,7 @@ import { UserService } from './services/user-service';
 import { MyMqttService } from './services/mymqtt-service';
 import { IMqttMessage } from 'ngx-mqtt';
 import { VeiclePosition } from './models/veicle-position';
+import { VeicleService } from './services/veicle-service';
 
 @Component({
   selector: 'app-root',
@@ -31,6 +32,7 @@ export class App implements OnInit {
   router = inject(Router);
   userService = inject(UserService);
   mqttService = inject(MyMqttService);
+
   constructor() {}
   ngOnInit(): void {
     this.detectMqttMessage();
@@ -56,12 +58,29 @@ export class App implements OnInit {
     const topic = 'vehicles/#';
     this.mqttService.topicSubscribe(topic).subscribe({
       next: (response: IMqttMessage) => {
-        const message: any = JSON.parse(response.payload.toString());
+        const message: VeiclePosition = JSON.parse(response.payload.toString());
         console.log('mqtt->', message);
-      },
+        // const list: VeiclePosition[] = this.mqttService.positionVeiclesList();
+        // let lista: VeiclePosition[] = [];
+        // if (list && list.length > 0) {
+        //   lista = list.filter((p) => p.id !== message.id);
+        // }
+        // lista.push(message);
+        //  if ((this.mqttService.positionVeiclesList() as any)) {
+        //    (this.mqttService.positionVeiclesList() as any).set(lista);
+        //  }
+        // console.log('console', lista, message);
+        const rawLista = localStorage.getItem('lista');
+        let lista: VeiclePosition[] = rawLista ? JSON.parse(rawLista) : [];
 
-      error: (response: IMqttMessage) => {
-        console.log('errore in mqtt', response);
+        if (message.latitude && message.vehicleId) {
+          console.log('lista1', lista);
+          lista = lista.filter((x) => x.vehicleId !== message.vehicleId);
+          console.log('lista2', lista);
+          lista.push(message);
+          localStorage.setItem(message.vehicleId.toString()!, JSON.stringify(message));
+        }
+        console.log('errore in mqtt', response, message.vehicleId, lista);
       },
     });
   }

@@ -1,5 +1,5 @@
 export interface VeiclePosition{
-        id: number;
+        vehicleId: number;
         latitude: number;
         longitude: number;
         speed: number;

@@ -393,19 +393,13 @@ export class Dashboard implements OnInit {
 
   constructor() {
     effect(() => {
-      this.loadVeicles();
-
-      if (this.selectedVeicle()) {
-        console.log('entro');
-        this.selectedVeicle.set(
-          this.veicleList().find((v) => v === this.selectedVeicle()) ?? ({} as Veicles)
-        );
-      }
+      this.userLogin.login.name;
+      console.log('console dash', this.mqttService.positionVeiclesList());
     });
   }
 
   ngOnInit() {
-    // this.loadVeicles();
+    this.loadVeicles();
     console.log(this.veicleList());
     this.userLogin.login.name;
   }
@@ -511,19 +505,6 @@ export class Dashboard implements OnInit {
     return pages;
   }
 
-  detectMqttMessage(): void {
-    const topic = 'vehicles/#';
-    this.mqttService.topicSubscribe(topic).subscribe({
-      next: (response: IMqttMessage) => {
-        const message: VeiclePosition = JSON.parse(response.payload.toString());
-        console.log('mqtt->', message);
-      },
-
-      error: (response: IMqttMessage) => {
-        console.log('errore in mqtt', response);
-      },
-    });
-  }
   // Metodo per contare i veicoli con posizione
   public getVeiclesWithPosition(): number {
     return this.veicleList().filter(
