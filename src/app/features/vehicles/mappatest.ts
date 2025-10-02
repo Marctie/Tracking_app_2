@@ -29,8 +29,8 @@ import { VeiclePosition } from '../../models/veicle-position';
       <div class="map-header">
         <h2>Mappa Veicoli in Tempo Reale</h2>
         <div class="header-controls">
-          <span class="auto-update-indicator">🔄 Aggiornamento automatico ogni 5s</span>
-          <button class="refresh-btn" (click)="refreshVeicles()">🔄 Aggiorna Ora</button>
+          <span class="auto-update-indicator">Aggiornamento automatico ogni 5s</span>
+          <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna Ora</button>
         </div>
       </div>
       <p>
@@ -40,13 +40,13 @@ import { VeiclePosition } from '../../models/veicle-position';
       <!-- Statistiche veicoli con info MQTT -->
       <div class="stats">
         <span class="stat-item">
-          🚗 Veicoli totali: <strong>{{ veicleList().length }}</strong>
+          Veicoli totali: <strong>{{ veicleList().length }}</strong>
         </span>
         <span class="stat-item">
-          📍 Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
+          Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
         </span>
         <span class="stat-item">
-          📡 Posizioni MQTT: <strong>{{ mqttService.positionVeiclesList().length }}</strong>
+          Posizioni MQTT: <strong>{{ mqttService.positionVeiclesList().length }}</strong>
         </span>
       </div>
 
@@ -172,30 +172,20 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     this.stopAutoUpdate();
   }
 
-  /**
-   * Avvia l'aggiornamento automatico delle posizioni dei veicoli
-   * Viene chiamato ogni 5 secondi per aggiornare i dati in tempo reale
-   */
   private startAutoUpdate(): void {
-    // Se esiste già un timer, lo fermiamo prima di crearne uno nuovo
     this.stopAutoUpdate();
 
-    console.log('🚀 Avvio aggiornamento automatico ogni 5 secondi');
+    console.log('Avvio aggiornamento automatico ogni 5 secondi');
 
-    // Crea un nuovo timer che si ripete ogni 5 secondi
     this.autoUpdateInterval = setInterval(() => {
-      console.log('🔄 Aggiornamento automatico posizioni veicoli...');
-      this.loadVeicles(); // Ricarica i dati dal server
+      console.log('Aggiornamento automatico posizioni veicoli...');
+      this.loadVeicles();
     }, this.UPDATE_INTERVAL);
   }
 
-  /**
-   * Ferma l'aggiornamento automatico delle posizioni
-   * Utile per evitare memory leak quando il componente viene distrutto
-   */
   private stopAutoUpdate(): void {
     if (this.autoUpdateInterval) {
-      console.log('⏹️ Fermo aggiornamento automatico');
+      console.log('Fermo aggiornamento automatico');
       clearInterval(this.autoUpdateInterval);
       this.autoUpdateInterval = null;
     }
@@ -217,62 +207,42 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Carica i veicoli dal database e li combina con le posizioni MQTT aggiornate
-   * Questo metodo unisce i dati statici (database) con quelli dinamici (MQTT)
-   */
   private loadVeicles(): void {
-    console.log('📂 Caricamento veicoli dal database...');
+    console.log('Caricamento veicoli dal database...');
 
-    // Carica i veicoli dal servizio database
     this.veicleService.getListVeicle().subscribe((response) => {
-      console.log('✅ Veicoli dal database:', response.items.length);
+      console.log('Veicoli dal database:', response.items.length);
 
-      // Ottieni le posizioni MQTT aggiornate
       const mqttPositions = this.mqttService.positionVeiclesList();
-      console.log('📡 Posizioni MQTT disponibili:', mqttPositions.length);
+      console.log('Posizioni MQTT disponibili:', mqttPositions.length);
 
-      // Combina i dati del database con le posizioni MQTT aggiornate
       const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
 
-      // Aggiorna il signal con i dati combinati
       this.veicleList.set(updatedVeicles);
-      console.log('🔄 Lista veicoli aggiornata con dati MQTT:', updatedVeicles.length);
+      console.log('Lista veicoli aggiornata con dati MQTT:', updatedVeicles.length);
 
-      // Se la mappa è già inizializzata, aggiorna i marker
       if (this.map) {
         this.addVeicleMarkers();
       }
     });
   }
 
-  /**
-   * Combina i dati dei veicoli dal database con le posizioni MQTT più recenti
-   * Se un veicolo ha una posizione MQTT più recente, la usa al posto di quella del database
-   *
-   * @param dbVeicles - Array dei veicoli dal database
-   * @param mqttPositions - Array delle posizioni MQTT aggiornate
-   * @returns Array dei veicoli con posizioni aggiornate
-   */
   private mergeVeiclesWithMqttData(
     dbVeicles: Veicles[],
     mqttPositions: VeiclePosition[]
   ): Veicles[] {
     return dbVeicles.map((veicle) => {
-      // Cerca se esiste una posizione MQTT per questo veicolo
       const mqttPosition = mqttPositions.find((position) => position.vehicleId === veicle.id);
 
       if (mqttPosition) {
-        // Se esiste una posizione MQTT, verifica se è più recente
         const dbTimestamp = veicle.lastPosition?.timestamp
           ? new Date(veicle.lastPosition.timestamp)
           : new Date(0);
         const mqttTimestamp = new Date(mqttPosition.timestamp);
 
         if (mqttTimestamp > dbTimestamp) {
-          console.log(`🔄 Aggiornamento posizione per ${veicle.licensePlate} con dati MQTT`);
+          console.log(`Aggiornamento posizione per ${veicle.licensePlate} con dati MQTT`);
 
-          // Crea una copia del veicolo con la posizione MQTT aggiornata
           return {
             ...veicle,
             lastPosition: mqttPosition,
@@ -280,7 +250,6 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
         }
       }
 
-      // Se non c'è una posizione MQTT più recente, mantieni quella del database
       return veicle;
     });
   }
@@ -304,42 +273,25 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Aggiunge marker per tutti i veicoli che hanno una posizione valida
-   * Rimuove prima i marker esistenti per evitare duplicati
-   */
   private addVeicleMarkers(): void {
-    // Rimuove marker esistenti per evitare duplicati
     this.clearMarkers();
 
-    // Aggiunge marker per ogni veicolo con posizione valida
     this.veicleList().forEach((veicle) => {
       if (veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude) {
         this.addVeicleMarker(veicle);
       }
     });
 
-    // NOTA: Non chiamiamo fitMapToMarkers() per mantenere lo zoom fisso su Roma
-    // La mappa rimane centrata su Roma indipendentemente dalla posizione dei veicoli
-    console.log(`📍 Aggiunti ${this.markers.length} marker sulla mappa (zoom fisso su Roma)`);
+    console.log(`Aggiunti ${this.markers.length} marker sulla mappa`);
   }
 
-  /**
-   * Aggiunge un marker per un singolo veicolo sulla mappa
-   * Include informazioni dettagliate nel popup e indica se i dati sono dal database o MQTT
-   *
-   * @param veicle - Il veicolo per cui creare il marker
-   */
   private addVeicleMarker(veicle: Veicles): void {
     const position = veicle.lastPosition;
-
-    // Crea marker personalizzato per il veicolo
     const marker = L.marker([position.latitude, position.longitude]).addTo(this.map);
 
-    // Determina la fonte dei dati (database vs MQTT)
     const mqttPositions = this.mqttService.positionVeiclesList();
     const hasRecentMqttData = mqttPositions.some((mqttPos) => {
-      if (mqttPos.vehicleId=== veicle.id) {
+      if (mqttPos.vehicleId === veicle.id) {
         const mqttTime = new Date(mqttPos.timestamp);
         const dbTime = new Date(position.timestamp);
         return mqttTime >= dbTime;
@@ -347,10 +299,9 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
       return false;
     });
 
-    const dataSource = hasRecentMqttData ? '📡 MQTT' : '💾 Database';
+    const dataSource = hasRecentMqttData ? 'MQTT' : 'Database';
     const sourceColor = hasRecentMqttData ? '#10b981' : '#6b7280';
 
-    // Crea popup con informazioni dettagliate del veicolo
     const popupContent = `
       <div style="font-family: Arial, sans-serif;">
         <h4 style="margin: 0 0 10px 0; color: #007bff;">${veicle.licensePlate}</h4>
@@ -373,41 +324,17 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     `;
 
     marker.bindPopup(popupContent);
-
-    // Aggiunge il marker all'array per il tracking
     this.markers.push(marker);
   }
 
-  /**
-   * Rimuove tutti i marker dalla mappa
-   * Necessario per evitare duplicati quando si aggiornano le posizioni
-   */
   private clearMarkers(): void {
-    // Rimuove tutti i marker dalla mappa
     this.markers.forEach((marker) => {
       this.map.removeLayer(marker);
     });
-    this.markers = []; // Resetta l'array dei marker
+    this.markers = [];
   }
 
-  /**
-   * Centra automaticamente la mappa per mostrare tutti i marker
-   * NOTA: Attualmente non utilizzato per mantenere zoom fisso su Roma
-   */
-  private fitMapToMarkers(): void {
-    // Crea un gruppo con tutti i marker per centrare la vista
-    const group = new L.FeatureGroup(this.markers);
-    this.map.fitBounds(group.getBounds().pad(0.1));
-  }
-
-  /**
-   * Formatta una data per la visualizzazione in formato italiano
-   *
-   * @param date - La data da formattare
-   * @returns Stringa formattata in italiano (gg/mm/aaaa hh:mm:ss)
-   */
   private formatDate(date: Date): string {
-    // Formatta la data in italiano
     return new Date(date).toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',
@@ -418,18 +345,9 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Metodo pubblico per ricaricare manualmente i dati
-   * Combina i dati del database con quelli MQTT e riavvia il timer automatico
-   * Utile quando l'utente clicca il pulsante "Aggiorna Ora"
-   */
   public refreshVeicles(): void {
-    console.log("🔄 Aggiornamento manuale richiesto dall'utente");
-
-    // Ricarica i dati (che include la combinazione con MQTT)
+    console.log("Aggiornamento manuale richiesto dall'utente");
     this.loadVeicles();
-
-    // Riavvia il timer automatico per sincronizzare il timing
     this.startAutoUpdate();
   }
 

@@ -59,29 +59,39 @@ export class App implements OnInit {
     this.mqttService.topicSubscribe(topic).subscribe({
       next: (response: IMqttMessage) => {
         const message: VeiclePosition = JSON.parse(response.payload.toString());
-        console.log('mqtt->', message);
-        // const list: VeiclePosition[] = this.mqttService.positionVeiclesList();
-        // let lista: VeiclePosition[] = [];
-        // if (list && list.length > 0) {
-        //   lista = list.filter((p) => p.id !== message.id);
-        // }
-        // lista.push(message);
-        //  if ((this.mqttService.positionVeiclesList() as any)) {
-        //    (this.mqttService.positionVeiclesList() as any).set(lista);
-        //  }
-        // console.log('console', lista, message);
+        console.log('MQTT messaggio ricevuto:', message);
+
+        // 1. Salva nel localStorage (come prima)
         const rawLista = localStorage.getItem('lista');
         let lista: VeiclePosition[] = rawLista ? JSON.parse(rawLista) : [];
 
         if (message.latitude && message.vehicleId) {
-          console.log('lista1', lista);
+          // Rimuove la posizione precedente dello stesso veicolo
           lista = lista.filter((x) => x.vehicleId !== message.vehicleId);
-          console.log('lista2', lista);
+          // Aggiunge la nuova posizione
           lista.push(message);
-          localStorage.setItem(message.vehicleId.toString()!, JSON.stringify(message));
+          // Salva nel localStorage per il singolo veicolo
+          localStorage.setItem(message.vehicleId.toString(), JSON.stringify(message));
+
+          console.log('Posizione salvata per veicolo:', message.vehicleId);
         }
-        console.log('errore in mqtt', response, message.vehicleId, lista);
+
+        // 2. NUOVO: Aggiorna anche il signal del servizio MQTT per uso immediato
+        this.updateMqttServiceSignal(lista);
+      },
+      error: (error) => {
+        console.error(' Errore MQTT:', error);
       },
     });
+  }
+
+  /**
+   * Aggiorna il signal del servizio MQTT con le nuove posizioni
+   * Questo permette ai componenti di accedere ai dati MQTT in tempo reale
+   */
+  private updateMqttServiceSignal(lista: VeiclePosition[]): void {
+    // Aggiorna il signal nel servizio con tutte le posizioni
+    this.mqttService.positionVeiclesList.set([...lista]);
+    console.log('Signal MQTT aggiornato con', lista.length, 'posizioni');
   }
 }

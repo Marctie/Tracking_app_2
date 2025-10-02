@@ -1,24 +1,17 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
   inject,
   output,
   OnInit,
-  signal,
   AfterViewInit,
-  DestroyRef,
   ViewChild,
   ElementRef,
-  viewChild,
   input,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { Veicles } from '../../../models/veicles';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { VeicleService } from '../../../services/veicle-service';
 import { MyMqttService } from '../../../services/mymqtt-service';
 
 @Component({
@@ -210,43 +203,37 @@ export class VeicleModal implements OnInit, AfterViewInit {
   @Input() testo: string = 'testo da mostrare ';
   selectedVeicle = input<Veicles>();
   hideModal = output<boolean>();
-  router = inject(Router);
-  veicleList = signal<Veicles[]>([]);
-  private veicleService = inject(VeicleService);
-  private mqttService = inject(MyMqttService); // Servizio per accedere ai dati MQTT
-  destroy = inject(DestroyRef);
+
+  // Servizi necessari
+  private mqttService = inject(MyMqttService);
+
+  // Elementi della mappa
   @ViewChild('leafletMap')
   private mapElement: ElementRef | undefined;
   private map!: L.Map;
-  private markers: L.Marker[] = []; // Array per tenere traccia dei marker
+  private markers: L.Marker[] = [];
 
   ngOnInit(): void {
     // Il modal riceve il veicolo selezionato dal dashboard
-    // Non serve caricare tutti i veicoli qui
     console.log('Modal inizializzato con veicolo:', this.selectedVeicle()?.licensePlate);
   }
 
   ngAfterViewInit(): void {
-    // Configura le icone di Leaflet per evitare errori 404
     this.setupLeafletIcons();
-
     // Inizializza solo la mappa - NON caricare tutti i veicoli
     this.initMap();
   }
 
   // Metodo per configurare le icone e rimuovere l'ombra
   private setupLeafletIcons(): void {
-    // Rimuove la funzione che cerca automaticamente le icone
     delete (L.Icon.Default.prototype as any)._getIconUrl;
 
-    // Configura le icone per evitare errori 404
     L.Icon.Default.mergeOptions({
       // Icona SVG inline per evitare file esterni
       iconUrl:
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZGM2ZTI2Ii8+Cjwvc3ZnPg==',
       iconRetinaUrl:
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZGM2ZTI2Ii8+Cjwvc3ZnPg==',
-      // IMPORTANTE: Rimuove completamente l'ombra per evitare errore 404
       shadowUrl: null,
       shadowSize: null,
       shadowAnchor: null,
@@ -254,32 +241,28 @@ export class VeicleModal implements OnInit, AfterViewInit {
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
     });
-
     console.log('Icone Leaflet configurate - nessun errore 404 per marker-shadow.png');
   }
 
   initMap(): void {
-    // Crea la mappa centrata sull'Italia
+    // Crea la mappa centrata su Roma
     this.map = L.map(this.mapElement?.nativeElement, {
       center: [41.9028, 12.4964],
       zoom: 6,
     });
-
-    // Aggiunge le tile della mappa
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(this.map);
-
-    // MOSTRA SOLO il veicolo selezionato dal dashboard
+    // MOSTRA SOLO il veicolo selezionato dal dashboard (SelectedVeicle obj)
     this.showSelectedVehicleOnMap();
   }
 
   // Metodo elementare per mostrare il veicolo selezionato
-  private showSelectedVehicleOnMap(): void {
+   showSelectedVehicleOnMap(): void {
     console.log('Veicolo selezionato ricevuto:', this.selectedVeicle);
 
-    // Controllo se abbiamo un veicolo selezionato
+    // Controllo del veicolo selezionato
     if (!this.selectedVeicle) {
       console.log('ERRORE: Nessun veicolo selezionato!');
       return;
@@ -294,7 +277,6 @@ export class VeicleModal implements OnInit, AfterViewInit {
     const lat = this.selectedVeicle()?.lastPosition.latitude;
     const lng = this.selectedVeicle()?.lastPosition.longitude;
 
-    // Controllo se le coordinate sono valide
     if (!lat || !lng) {
       console.log('ERRORE: Coordinate non valide!', lat, lng);
       return;
@@ -305,10 +287,10 @@ export class VeicleModal implements OnInit, AfterViewInit {
     // Crea il marker del veicolo
     const marker = L.marker([lat, lng]).addTo(this.map);
 
-    // Popup semplice con info veicolo
+    // Popup con info veicolo
     const popup = `
       <div>
-        <h4>🚗 ${this.selectedVeicle()?.licensePlate}</h4>
+        <h4>${this.selectedVeicle()?.licensePlate}</h4>
         <p><b>Modello:</b> ${this.selectedVeicle()?.model}</p>
         <p><b>Velocità:</b> ${this.selectedVeicle()?.lastPosition.speed} km/h</p>
         <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
@@ -324,14 +306,15 @@ export class VeicleModal implements OnInit, AfterViewInit {
     this.markers.push(marker);
   }
 
+  //Chiusura della modale col bottone X
   exitModal() {
     this.hideModal.emit(false);
   }
-
+  //Chiusura della modale cliccando fuori dagli spazi
   onOverlayClick(event: MouseEvent): void {
     this.hideModal.emit(false);
   }
-
+  //formattazione della data
   formatDate(data: string | Date): string {
     if (!data) return '';
     const d = new Date(data);
@@ -344,126 +327,129 @@ export class VeicleModal implements OnInit, AfterViewInit {
       minute: '2-digit',
     });
   }
-  // Metodo  per aggiornare davvero la posizione dal MQTT
+  /**
+   * Aggiorna la posizione del veicolo con i dati MQTT più recenti
+   * Cerca prima nel signal del servizio MQTT, poi nel localStorage come fallback
+   */
   public refreshVeicles(): void {
-    console.log('🔄 Aggiornamento posizione MQTT per:', this.selectedVeicle()?.licensePlate);
+    console.log('Ricerca dati MQTT per veicolo:', this.selectedVeicle()?.licensePlate);
 
     if (!this.selectedVeicle()) {
-      console.log("❌ Nessun veicolo selezionato per l'aggiornamento");
+      console.log('Nessun veicolo selezionato');
       return;
     }
-
-    // Cerca la posizione più recente per questo veicolo nei dati MQTT
-    const mqttPositions = this.mqttService.positionVeiclesList();
     const vehicleId = this.selectedVeicle()?.id;
 
-    console.log('📡 Posizioni MQTT disponibili:', mqttPositions.length);
-    console.log('🔍 Cercando aggiornamenti per veicolo ID:', vehicleId);
+    // 1. Prima prova a cercare nel signal del servizio MQTT
+    const mqttPosition = this.getMqttPositionFromService(vehicleId);
 
-    // Trova la posizione più recente per questo veicolo
-    const latestPosition = mqttPositions.find((position) => position.vehicleId === vehicleId);
+    // 2. Se non trovato, prova nel localStorage
+    const localStoragePosition = !mqttPosition
+      ? this.getMqttPositionFromLocalStorage(vehicleId)
+      : null;
+
+    // 3. Usa il dato più recente trovato
+    const latestPosition = mqttPosition || localStoragePosition;
 
     if (latestPosition) {
-      console.log('✅ Trovata posizione aggiornata via MQTT:', latestPosition);
+      console.log('Trovata posizione MQTT aggiornata:', latestPosition);
 
-      // Aggiorna la posizione del veicolo selezionato
-      const updatedVehicle = { ...this.selectedVeicle()! };
-      updatedVehicle.lastPosition = latestPosition;
+      // Aggiorna anche il modello usato dal template: selectedVeicle.signal (compatibile con input() / signal APIs)
+      const current = this.selectedVeicle?.();
+      if (current) {
+        const updatedVeicle: Veicles = {
+          ...current,
+          lastPosition: {
+            ...(current.lastPosition ?? {}),
+            latitude: latestPosition.latitude,
+            longitude: latestPosition.longitude,
+            speed: latestPosition.speed,
+            timestamp: latestPosition.timestamp ?? latestPosition.time ?? Date.now(),
+          },
+        };
 
-      // Rimuove marker esistenti
-      this.clearMarkers();
+        // Supporta sia .set() che .update() delle API signal
+        const sel: any = this.selectedVeicle;
+        if (typeof sel.set === 'function') {
+          sel.set(updatedVeicle);
+        } else if (typeof sel.update === 'function') {
+          sel.update(() => updatedVeicle);
+        } else {
+          // Fallback: muta l'oggetto corrente (utile se selectedVeicle è un plain object reference)
+          Object.assign(current, updatedVeicle);
+        }
+      }
 
-      // Mostra il marker con la posizione aggiornata
-      this.showUpdatedVehiclePosition(latestPosition);
-
-      console.log('🗺️ Mappa aggiornata con nuova posizione');
+      this.updateMapWithMqttData(latestPosition);
     } else {
-      console.log('⚠️ Nessuna posizione MQTT trovata per questo veicolo');
-      console.log('💡 Mostrando la posizione originale dal database');
-
-      // Se non ci sono aggiornamenti MQTT, mostra la posizione originale
-      this.clearMarkers();
+      console.log('Nessun dato MQTT trovato, uso posizione dal database');
       this.showSelectedVehicleOnMap();
     }
   }
-    private loadVeicles(): void {
-    // Carica i veicoli dal servizio
-    this.veicleService.getListVeicle().subscribe((response) => {
-      this.veicleList.set(response.items);
-      console.log('Veicoli caricati:', this.veicleList());
 
-      // Se la mappa è già inizializzata, aggiorna i marker
-      if (this.map) {
-        this.addVeicleMarkers();
-      }
-    });
-  }
-   private addVeicleMarkers(): void {
-    // Rimuove marker esistenti
-    this.clearMarkers();
+  /**
+   * Cerca la posizione del veicolo nel signal del servizio MQTT
+   * @param vehicleId - ID del veicolo da cercare
+   * @returns Posizione MQTT se trovata, null altrimenti
+   */
+  private getMqttPositionFromService(vehicleId: any): any {
+    const mqttPositions = this.mqttService.positionVeiclesList();
+    const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
 
-    // Aggiunge marker per ogni veicolo con posizione
-    this.veicleList().forEach((veicle) => {
-      if (veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude) {
-        this.addVeicleMarker(veicle);
-      }
-    });
-
-    // NOTA: Non chiamiamo fitMapToMarkers() per mantenere lo zoom fisso su Roma
-    // La mappa rimane centrata su Roma indipendentemente dalla posizione dei veicoli
-    console.log(`📍 Aggiunti ${this.markers.length} marker sulla mappa (zoom fisso su Roma)`);
-  }
-  private addVeicleMarker(veicle: Veicles): void {
-      const position = veicle.lastPosition;
-  
-      // Crea marker personalizzato per il veicolo
-      const marker = L.marker([position.latitude, position.longitude]).addTo(this.map);
-  
-      // Crea popup con informazioni dettagliate del veicolo
-      const popupContent = `
-        <div style="font-family: Arial, sans-serif;">
-          <h4 style="margin: 0 0 10px 0; color: #007bff;">${veicle.licensePlate}</h4>
-          <p style="margin: 5px 0;"><strong>Modello:</strong> ${veicle.model}</p>
-          <p style="margin: 5px 0;"><strong>Marca:</strong> ${veicle.brand}</p>
-          <p style="margin: 5px 0;"><strong>Stato:</strong> ${veicle.status}</p>
-          <p style="margin: 5px 0;"><strong>Velocità:</strong> ${position.speed} km/h</p>
-          <p style="margin: 5px 0;"><strong>Direzione:</strong> ${position.heading}°</p>
-          <p style="margin: 5px 0;"><strong>Coordinate:</strong><br>
-            Lat: ${position.latitude.toFixed(6)}<br>
-            Lng: ${position.longitude.toFixed(6)}
-          </p>
-          <p style="margin: 5px 0;"><strong>Ultimo aggiornamento:</strong><br>
-            ${this.formatDate(position.timestamp)}
-          </p>
-        </div>
-      `;
-  
-      marker.bindPopup(popupContent);
-  
-      // Aggiunge il marker all'array per il tracking
-      this.markers.push(marker);
+    if (position) {
+      console.log('Posizione trovata nel signal MQTT service');
+      return position;
     }
 
-  // Nuovo metodo per mostrare la posizione aggiornata da MQTT
-  private showUpdatedVehiclePosition(mqttPosition: any): void {
+    console.log(' Nessuna posizione nel signal, provo localStorage...');
+    return null;
+  }
+
+  /**
+   * Cerca la posizione del veicolo nel localStorage
+   * @param vehicleId - ID del veicolo da cercare
+   * @returns Posizione MQTT se trovata, null altrimenti
+   */
+  private getMqttPositionFromLocalStorage(vehicleId: any): any {
+    try {
+      const storedPosition = localStorage.getItem(vehicleId.toString());
+      if (storedPosition) {
+        const position = JSON.parse(storedPosition);
+        console.log('Posizione trovata in localStorage');
+        return position;
+      }
+    } catch (error) {
+      console.error('Errore leggendo localStorage:', error);
+    }
+
+    console.log('Nessuna posizione in localStorage');
+    return null;
+  }
+
+  /**
+   * Aggiorna la mappa con i dati MQTT
+   * @param mqttPosition - Dati di posizione MQTT
+   */
+  updateMapWithMqttData(mqttPosition: any): void {
+    // Rimuove i marker esistenti
+    this.clearMarkers();
+
     const lat = mqttPosition.latitude;
     const lng = mqttPosition.longitude;
 
-    console.log('📍 Creando marker aggiornato a:', lat, lng);
+    console.log('Aggiornamento mappa con posizione MQTT:', lat, lng);
 
-    // Crea il marker con la posizione aggiornata
+    // Crea nuovo marker con posizione MQTT
     const marker = L.marker([lat, lng]).addTo(this.map);
 
-    // Popup con info aggiornate (incluso timestamp MQTT)
+    // Popup con indicazione che i dati sono da MQTT
     const popup = `
       <div>
-        <h4>🚗 ${this.selectedVeicle()?.licensePlate}</h4>
+        <h4>${this.selectedVeicle()?.licensePlate}</h4>
         <p><b>Modello:</b> ${this.selectedVeicle()?.model}</p>
         <p><b>Velocità:</b> ${mqttPosition.speed || 'N/A'} km/h</p>
         <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
-        <p><b>📡 Aggiornato via MQTT:</b> ${new Date(
-          mqttPosition.timestamp
-        ).toLocaleTimeString()}</p>
+        <p><b>Ultimo aggiornamento:</b> ${new Date(mqttPosition.timestamp).toLocaleTimeString()}</p>
       </div>
     `;
 
@@ -474,13 +460,18 @@ export class VeicleModal implements OnInit, AfterViewInit {
 
     // Salva il marker
     this.markers.push(marker);
-  }
 
-  // Rimuove tutti i marker dalla mappa
+    console.log('🗺️ Mappa aggiornata con successo');
+  }
+  /**
+   * Rimuove tutti i marker dalla mappa
+   * Necessario prima di aggiungere nuovi marker per evitare duplicati
+   */
   private clearMarkers(): void {
     this.markers.forEach((marker) => {
       this.map.removeLayer(marker);
     });
     this.markers = [];
+    console.log('🧹 Marker rimossi dalla mappa');
   }
 }

@@ -1,18 +1,16 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
-import { timeout } from 'rxjs';
 import { UserService } from '../../services/user-service';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { VeicleModal } from './modals/veicle-modal';
-import { IMqttMessage } from 'ngx-mqtt';
-import { VeiclePosition } from '../../models/veicle-position';
 import { MyMqttService } from '../../services/mymqtt-service';
+import { IFilter, SelectFilter } from './select-filter';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, VeicleModal, RouterLink],
+  imports: [CommonModule, VeicleModal, SelectFilter],
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
@@ -58,6 +56,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
               </td>
             </tr>
             } }
+            <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
           </tbody>
         </table>
       </div>
@@ -375,6 +374,8 @@ import { MyMqttService } from '../../services/mymqtt-service';
 })
 export class Dashboard implements OnInit {
   showModal = signal(false);
+  messageStorage = {};
+
   titoloAlert: string | undefined;
   descrizioneAlert: string | undefined;
   selectedVeicle = signal<Veicles>({} as Veicles);
@@ -390,44 +391,66 @@ export class Dashboard implements OnInit {
   veicleList = signal<Veicles[]>([]);
   paginatedVeicles = signal<Veicles[]>([]);
   router = inject(Router);
+  filterList = computed(() => {
+    const lista = this.veicleList();
+    let trimText = this.value().textFilter ? this.value().textFilter.trim() : '';
+    return lista.filter((veicolo) => {
+      if(this.value().valueOption=== 'licensePlate'){
+        console.log('filtro per targa')
+        return veicolo.licensePlate === trimText;
+      }else{
+        console.log('filtro per brand')
+        return veicolo.model.includes(trimText)
+      }
+      
+    });
+  });
+  value = signal<IFilter>({} as IFilter);
 
   constructor() {
     effect(() => {
       this.userLogin.login.name;
-      console.log('console dash', this.mqttService.positionVeiclesList());
+      // console.log('dati di effect da dashboard', this.mqttService.positionVeiclesList());
+      console.log(this.filterList());
     });
   }
 
   ngOnInit() {
     this.loadVeicles();
-    console.log(this.veicleList());
-    this.userLogin.login.name;
+    console.log('Dashboard inizializzata con', this.veicleList().length, 'veicoli');
   }
 
+  /**
+   * Carica la lista dei veicoli dal servizio e aggiorna la paginazione
+   */
   loadVeicles(): void {
     this.veicleService.getListVeicle().subscribe((response) => {
       this.veicleList.set(response.items);
       this.updatePagination();
-      console.log('mia response', this.veicleList());
+      console.log('Veicoli caricati:', this.veicleList().length);
     });
-  }
-
-  onClick() {
-    this.loadVeicles();
   }
 
   // campi da nascondere nella tabella
   private hiddenFields: (keyof Veicles)[] = ['id', 'lastPosition']; // campi nascosti
 
-  // funzione per recuperare i campi e inserirli in html senza doverli scrivere piu volte
+  /**
+   * Recupera le chiavi visibili del veicolo escludendo quelle nascoste
+   * @param veicle - Il veicolo di cui ottenere le chiavi
+   * @returns Array delle chiavi visibili
+   */
   recoveryVeicleKeys(veicle: Veicles): (keyof Veicles)[] {
     let allKeys = Object.keys(veicle) as (keyof Veicles)[];
-    // filtra i campi che non vuoi mostrare
     let visibleKeys = allKeys.filter((key) => !this.hiddenFields.includes(key));
     return visibleKeys;
   }
 
-  // suddivide un array in chunk di dimensione n
+  /**
+   * Suddivide un array in chunk di dimensione specificata
+   * @param arr - Array da suddividere
+   * @param size - Dimensione di ogni chunk
+   * @returns Array di chunk
+   */
   chunkKeys<T>(arr: T[], size: number): T[][] {
     const res: T[][] = [];
     for (let i = 0; i < arr.length; i += size) {
@@ -436,11 +459,15 @@ export class Dashboard implements OnInit {
     return res;
   }
 
-  // Formatta la data in formato italiano
+  /**
+   * Formatta una data in formato italiano
+   * @param data - Data da formattare (string o Date)
+   * @returns Stringa formattata in italiano
+   */
   formatDataIt(data: string | Date): string {
     if (!data) return '';
     const d = new Date(data);
-    if (isNaN(d.getTime())) return String(data); // fallback se non è una data valida
+    if (isNaN(d.getTime())) return String(data);
     return d.toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',
@@ -450,12 +477,19 @@ export class Dashboard implements OnInit {
     });
   }
 
-  //funzione per l'apertura e chiusura della modale
+  /**
+   * Apre il modal con i dettagli del veicolo selezionato
+   * @param veicle - Veicolo di cui mostrare i dettagli
+   */
   goToMap(veicle: Veicles) {
     this.selectedVeicle.set(veicle);
     this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
     this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
+    console.log('Apertura modal per veicolo:', veicle.licensePlate);
+    let variab = localStorage.getItem(veicle.id.toString());
+    this.messageStorage = variab ? JSON.parse(variab) : {};
+    console.log('entro nella funzione gotoMap con questi dati  ->', this.messageStorage);
   }
 
   // Metodi per la paginazione
@@ -511,5 +545,19 @@ export class Dashboard implements OnInit {
       (veicle) =>
         veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude
     ).length;
+  }
+
+  onFilterBy(value: IFilter) {
+    // console.log('STAMPA LISTA',this.veicleList())
+
+    // const filtredList = this.veicleList().filter(
+    //   (veicolo) => veicolo.licensePlate === value.textFilter.trim()
+
+    //   // && veicolo.model === value.valueOption
+    // );
+    // this.veicleList.set(filtredList);
+
+    //   console.log('filtro ', filtredList, value);
+    this.value.set(value);
   }
 }

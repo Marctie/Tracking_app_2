@@ -8,7 +8,7 @@ import { VeiclePosition } from '../models/veicle-position';
 })
 export class MyMqttService {
   mqttService = inject(MqttService);
-  positionVeiclesList =signal<VeiclePosition[]>([]);
+  positionVeiclesList = signal<VeiclePosition[]>([]);
 
   topicSubscribe(topic: string): Observable<IMqttMessage> {
     return this.mqttService.observe(topic);
