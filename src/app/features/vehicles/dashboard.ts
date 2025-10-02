@@ -1,4 +1,14 @@
-import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  OnChanges,
+  OnInit,
+  SimpleChanges,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
@@ -14,7 +24,7 @@ import { IFilter, SelectFilter } from './select-filter';
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
-                  <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
+      <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       <div class="table-wrapper">
         <table>
           <thead>
@@ -400,7 +410,7 @@ export class Dashboard implements OnInit {
         return veicolo.licensePlate.toUpperCase().includes(trimText);
       } else {
         console.log('filtro per brand');
-        return veicolo.model.toUpperCase().includes(trimText) 
+        return veicolo.model.toUpperCase().includes(trimText);
       }
     });
   });
@@ -411,12 +421,12 @@ export class Dashboard implements OnInit {
       this.userLogin.login.name;
       // console.log('dati di effect da dashboard', this.mqttService.positionVeiclesList());
       console.log(this.filterList());
-      if(this.filterList()){
+      if (this.filterList()) {
         this.updatePagination(this.filterList());
-
       }
     });
   }
+ 
 
   ngOnInit() {
     this.loadVeicles();
@@ -496,7 +506,7 @@ export class Dashboard implements OnInit {
   }
 
   // Metodi per la paginazione
-  updatePagination(veicleList:Veicles[]): void {
+  updatePagination(veicleList: Veicles[]): void {
     const total = Math.ceil(veicleList.length / this.itemsPerPage);
     this.totalPages.set(total);
 
@@ -507,12 +517,11 @@ export class Dashboard implements OnInit {
     this.updatePaginatedVeicles(veicleList);
   }
 
-  updatePaginatedVeicles(veicleList:Veicles[]): void {
+  updatePaginatedVeicles(veicleList: Veicles[]): void {
     const startIndex = (this.currentPage() - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    const paginated =veicleList.slice(startIndex, endIndex);
+    const paginated = veicleList.slice(startIndex, endIndex);
     this.paginatedVeicles.set(paginated);
-
   }
 
   goToPage(page: number): void {
@@ -552,16 +561,6 @@ export class Dashboard implements OnInit {
   }
 
   onFilterBy(value: IFilter) {
-    // console.log('STAMPA LISTA',this.veicleList())
-
-    // const filtredList = this.veicleList().filter(
-    //   (veicolo) => veicolo.licensePlate === value.textFilter.trim()
-
-    //   // && veicolo.model === value.valueOption
-    // );
-    // this.veicleList.set(filtredList);
-
-    //   console.log('filtro ', filtredList, value);
     this.value.set(value);
   }
 }
