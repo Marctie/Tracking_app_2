@@ -426,7 +426,6 @@ export class Dashboard implements OnInit {
       }
     });
   }
- 
 
   ngOnInit() {
     this.loadVeicles();
@@ -562,5 +561,11 @@ export class Dashboard implements OnInit {
 
   onFilterBy(value: IFilter) {
     this.value.set(value);
-  }
+     if (!value.textFilter || value.textFilter.trim() === '') {
+    // Ricarica i dati originari solo se il filtro è vuoto
+     setTimeout(()=>{
+      this.loadVeicles()
+     },500)
+  }}   
+  
 }
