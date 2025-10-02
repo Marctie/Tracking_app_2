@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms';
         <div class="input-wrap">
           <input
             #textFilter
-            (keypress)="onFilterBy(textFilter.value)"
+            (input)="onFilterBy(textFilter.value)"
             type="text"
             class="filter-input"
             placeholder="Cerca..."
@@ -213,15 +213,17 @@ export class SelectFilter {
   valueOption = '';
   //Output per far salire i dati in dashboard, tipizzando i 2 valori di filtraggio
   filterParam = output<{ valueOption: string; textFilter: string }>();
-
   //metodo per emettere i dati da questo componente al componente padre
   onFilterBy(inputValue: string): void {
     const inputValueUp = inputValue.toUpperCase();
     const valueOptionUp = this.valueOption;
-    this.filterParam.emit({
-      valueOption: valueOptionUp,
-      textFilter: inputValueUp,
-    });
+    //condizione per far emettere solo se viene selezionato il tipo
+    if (valueOptionUp) {
+      this.filterParam.emit({
+        valueOption: valueOptionUp,
+        textFilter: inputValueUp,
+      });
+    }
   }
 
   //metodo per pulire il campo di input
