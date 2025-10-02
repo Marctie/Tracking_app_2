@@ -24,7 +24,7 @@ import { FormsModule } from '@angular/forms';
             class="filter-input"
             placeholder="Cerca..."
           />
-          <button class="clear-btn" aria-label="Clear">×</button>
+          <button class="clear-btn" (click)="clearInput(textFilter)" aria-label="Clear">×</button>
         </div>
       </div>
       <br />
@@ -38,90 +38,174 @@ import { FormsModule } from '@angular/forms';
     </div>
   `,
   styles: `
-    :host { display:block; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#222; }
-
-    .filter-wrap {
-      display:flex;
-      flex-direction:column;
-      max-width:420px;
-      width:100%;
+    :host { 
+      display: block; 
+      font-family: Arial, sans-serif; 
+      color: #333;
+      margin: 20px 0;
     }
 
-    .filter-label {
-      font-size:12px;
-      color:#556;
-      text-transform:uppercase;
-      letter-spacing:0.04em;
+    .filter-wrap {
+      display: flex;
+      flex-direction: row;
+      gap: 15px;
+      max-width: 500px;
+      width: 100%;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .filter-wrap p {
+      margin: 0;
+      color: #007bff;
+      font-weight: bold;
+      font-size: 16px;
+      text-align: center;
     }
 
     .filter-controls {
-      display:flex;
-      gap:8px;
-      align-items:center;
+      display: flex;
+      gap: 12px;
+      align-items: center;
     }
 
     .input-wrap {
-      position:relative;
-      flex:1;
+      position: relative;
+      flex: 1;
     }
 
     .filter-input {
-      width:100%;
-      padding:10px 40px 10px 12px;
-      border:1px solid #e6e9ec;
-      border-radius:8px;
-      background:#fff;
-      box-shadow:0 1px 2px rgba(16,24,40,0.03);
-      font-size:14px;
-      color:#17202a;
-      outline:none;
+      width: 100%;
+      padding: 12px 40px 12px 15px;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      font-size: 14px;
+      color: #333;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: Arial, sans-serif;
+      box-sizing: border-box;
     }
 
-    .filter-input::placeholder { color:#9aa0a6; }
+    .filter-input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .filter-input::placeholder { 
+      color: #6c757d;
+      font-style: italic;
+    }
 
     .clear-btn {
-      position:absolute;
-      right:6px;
-      top:50%;
-      transform:translateY(-50%);
-      border:none;
-      background:transparent;
-      width:30px;
-      height:30px;
-      border-radius:6px;
-      cursor:pointer;
-      color:#88909a;
-      font-size:18px;
-      line-height:1;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: #007bff;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .clear-btn:hover { background:#f3f4f6; color:#444; }
+    .clear-btn:hover { 
+      background: #0056b3; 
+      transform: translateY(-50%) scale(1.05);
+    }
 
-    .select-wrap { min-width:150px; }
+    .select-wrap { 
+      min-width: 200px; 
+    }
 
     .filter-select {
-      width:100%;
-      padding:10px 12px;
-      padding-right:36px;
-      border-radius:8px;
-      border:1px solid #e6e9ec;
-      background:#fff;
-      font-size:14px;
-      cursor:pointer;
-      appearance:none;
-      -webkit-appearance:none;
-      -moz-appearance:none;
-      background-image:
-        linear-gradient(45deg, transparent 50%, #667 50%),
-        linear-gradient(135deg, #667 50%, transparent 50%);
-      background-position: calc(100% - 14px) calc(50% - 6px), calc(100% - 10px) calc(50% - 6px);
-      background-size:6px 6px,6px 6px;
-      background-repeat:no-repeat;
+      width: 100%;
+      padding: 12px 15px;
+      padding-right: 40px;
+      border-radius: 8px;
+      border: 2px solid #dee2e6;
+      background: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      color: #333;
+      outline: none;
+      transition: all 0.3s ease;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23007bff' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-4-4h8l-4 4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      box-sizing: border-box;
     }
 
-    @media (max-width:420px) {
-      .filter-controls { flex-direction:column; align-items:stretch; }
-      .select-wrap { width:100%; min-width:0; }
+    .filter-select:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .filter-select:hover {
+      border-color: #007bff;
+    }
+
+    /* Responsiveness per dispositivi mobili */
+    @media (max-width: 768px) {
+      .filter-wrap {
+        margin: 10px;
+        padding: 15px;
+        max-width: none;
+      }
+      
+      .filter-controls { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 15px;
+      }
+      
+      .select-wrap { 
+        width: 100%; 
+        min-width: 0; 
+      }
+
+      .filter-input, .filter-select {
+        font-size: 16px; /* Previene zoom su iOS */
+      }
+    }
+
+    @media (max-width: 480px) {
+      .filter-wrap {
+        margin: 5px;
+        padding: 12px;
+      }
+
+      .filter-input, .filter-select {
+        padding: 10px 12px;
+      }
+
+      .filter-input {
+        padding-right: 35px;
+      }
+
+      .clear-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+      }
     }
   `,
 })
@@ -130,9 +214,24 @@ export class SelectFilter {
   //Output per far salire i dati in dashboard, tipizzando i 2 valori di filtraggio
   filterParam = output<{ valueOption: string; textFilter: string }>();
 
-    //metodo per emettere i dati da questo componente al componente padre
-  onFilterBy(value: string): void {
-    this.filterParam.emit({ valueOption: this.valueOption, textFilter: value });
+  //metodo per emettere i dati da questo componente al componente padre
+  onFilterBy(inputValue: string): void {
+    const inputValueUp = inputValue.toUpperCase();
+    const valueOptionUp = this.valueOption;
+    this.filterParam.emit({
+      valueOption: valueOptionUp,
+      textFilter: inputValueUp,
+    });
+  }
+
+  //metodo per pulire il campo di input
+  clearInput(inputElement: HTMLInputElement): void {
+    inputElement.value = '';
+    this.valueOption = '';
+    this.filterParam.emit({
+      valueOption: '',
+      textFilter: '',
+    });
   }
 }
 

@@ -14,6 +14,7 @@ import { IFilter, SelectFilter } from './select-filter';
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
+                  <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       <div class="table-wrapper">
         <table>
           <thead>
@@ -56,7 +57,6 @@ import { IFilter, SelectFilter } from './select-filter';
               </td>
             </tr>
             } }
-            <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
           </tbody>
         </table>
       </div>
@@ -393,16 +393,15 @@ export class Dashboard implements OnInit {
   router = inject(Router);
   filterList = computed(() => {
     const lista = this.veicleList();
-    let trimText = this.value().textFilter ? this.value().textFilter.trim() : '';
+    let trimText = this.value().textFilter ? this.value().textFilter : '';
     return lista.filter((veicolo) => {
-      if(this.value().valueOption=== 'licensePlate'){
-        console.log('filtro per targa')
-        return veicolo.licensePlate === trimText;
-      }else{
-        console.log('filtro per brand')
-        return veicolo.model.includes(trimText)
+      if (this.value().valueOption === 'licensePlate') {
+        console.log('filtro per targa');
+        return veicolo.licensePlate.toUpperCase().includes(trimText);
+      } else {
+        console.log('filtro per brand');
+        return veicolo.model.toUpperCase().includes(trimText) 
       }
-      
     });
   });
   value = signal<IFilter>({} as IFilter);
@@ -412,6 +411,10 @@ export class Dashboard implements OnInit {
       this.userLogin.login.name;
       // console.log('dati di effect da dashboard', this.mqttService.positionVeiclesList());
       console.log(this.filterList());
+      if(this.filterList()){
+        this.updatePagination(this.filterList());
+
+      }
     });
   }
 
@@ -426,7 +429,7 @@ export class Dashboard implements OnInit {
   loadVeicles(): void {
     this.veicleService.getListVeicle().subscribe((response) => {
       this.veicleList.set(response.items);
-      this.updatePagination();
+      this.updatePagination(this.veicleList());
       console.log('Veicoli caricati:', this.veicleList().length);
     });
   }
@@ -493,28 +496,29 @@ export class Dashboard implements OnInit {
   }
 
   // Metodi per la paginazione
-  updatePagination(): void {
-    const total = Math.ceil(this.veicleList().length / this.itemsPerPage);
+  updatePagination(veicleList:Veicles[]): void {
+    const total = Math.ceil(veicleList.length / this.itemsPerPage);
     this.totalPages.set(total);
 
     if (this.currentPage() > total && total > 0) {
       this.currentPage.set(total);
     }
 
-    this.updatePaginatedVeicles();
+    this.updatePaginatedVeicles(veicleList);
   }
 
-  updatePaginatedVeicles(): void {
+  updatePaginatedVeicles(veicleList:Veicles[]): void {
     const startIndex = (this.currentPage() - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    const paginated = this.veicleList().slice(startIndex, endIndex);
+    const paginated =veicleList.slice(startIndex, endIndex);
     this.paginatedVeicles.set(paginated);
+
   }
 
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages()) {
       this.currentPage.set(page);
-      this.updatePaginatedVeicles();
+      this.updatePaginatedVeicles(this.veicleList());
     }
   }
 
