@@ -40,9 +40,10 @@ import { MyMqttService } from '../../services/mymqtt-service';
         </p>
       </div> -->
 
-      <!-- Statistiche veicoli con info MQTT -->
+      <!-- Statistiche veicoli con contatori per stato -->
       <div class="stats-section">
         <div class="stats-grid">
+          <!-- Totale veicoli -->
           <div class="stat-card">
             <div class="stat-content">
               <span class="stat-label">Veicoli Totali</span>
@@ -50,36 +51,37 @@ import { MyMqttService } from '../../services/mymqtt-service';
             </div>
           </div>
 
+          <!-- Veicoli con posizione -->
           <div class="stat-card">
             <div class="stat-content">
               <span class="stat-label">Con Posizione</span>
               <span class="stat-value">{{ getVeiclesWithPosition() }}</span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Legenda stati veicoli -->
-      <div class="legend-section">
-        <h4>Stati Veicoli</h4>
-        <div class="legend-grid">
-          <div class="legend-item">
-            <div class="legend-color online"></div>
-            <span>Online/Attivo</span>
+          <!-- Veicoli online/attivi -->
+          <div class="stat-card online-status">
+            <div class="stat-content">
+              <span class="stat-label">Online</span>
+              <span class="stat-value">{{ getVeiclesOnline() }}</span>
+            </div>
           </div>
-          <div class="legend-item">
-            <div class="legend-color offline"></div>
-            <span>Offline/Inattivo</span>
+
+          <!-- Veicoli offline/inattivi -->
+          <div class="stat-card offline-status">
+            <div class="stat-content">
+              <span class="stat-label">Offline</span>
+              <span class="stat-value">{{ getVeiclesOffline() }}</span>
+            </div>
           </div>
-          <div class="legend-item">
-            <div class="legend-color maintenance"></div>
-            <span>In Manutenzione</span>
+
+          <!-- Veicoli in manutenzione -->
+          <div class="stat-card maintenance-status">
+            <div class="stat-content">
+              <span class="stat-label">Manutenzione</span>
+              <span class="stat-value">{{ getVeiclesMaintenance() }}</span>
+            </div>
           </div>
-          <!-- in caso di altri stati -->
-          <!-- <div class="legend-item">
-            <div class="legend-color unknown"></div>
-            <span>Stato Sconosciuto</span>
-          </div> -->
         </div>
       </div>
 
@@ -201,7 +203,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 15px;
     }
 
@@ -220,6 +222,31 @@ import { MyMqttService } from '../../services/mymqtt-service';
     .stat-card:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    /* Stili specifici per i diversi stati */
+    .stat-card.online-status {
+      border-left-color: #28a745;
+    }
+
+    .stat-card.online-status:hover {
+      box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+    }
+
+    .stat-card.offline-status {
+      border-left-color: #dc3545;
+    }
+
+    .stat-card.offline-status:hover {
+      box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+    }
+
+    .stat-card.maintenance-status {
+      border-left-color: #ffc107;
+    }
+
+    .stat-card.maintenance-status:hover {
+      box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
     }
 
     .stat-icon {
@@ -292,7 +319,6 @@ import { MyMqttService } from '../../services/mymqtt-service';
     .legend-color.online { background-color: #28a745; }
     .legend-color.offline { background-color: #dc3545; }
     .legend-color.maintenance { background-color: #ffc107; }
-    .legend-color.unknown { background-color: #6c757d; }
 
     /* === MAPPA === */
     .map-wrapper {
@@ -339,7 +365,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
       }
 
       .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .legend-grid {
@@ -356,12 +382,30 @@ import { MyMqttService } from '../../services/mymqtt-service';
         font-size: 20px;
       }
 
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
       .legend-grid {
         grid-template-columns: 1fr;
       }
 
       .leaflet-map {
         height: 350px;
+      }
+
+      .stat-card {
+        padding: 15px;
+      }
+
+      .stat-icon {
+        font-size: 20px;
+        width: 35px;
+        height: 35px;
+      }
+
+      .stat-value {
+        font-size: 18px;
       }
     }
   `,
@@ -384,10 +428,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
 
   // Mappa dei colori per gli stati dei veicoli
   private statusColorMap: { [key: string]: string } = {
-    online: '#28a745', // Verde per veicoli online
     active: '#28a745', // Verde per veicoli attivi
     offline: '#dc3545', // Rosso per veicoli offline
-    inactive: '#dc3545', // Rosso per veicoli inattivi
     maintenance: '#ffc107', // Giallo per manutenzione
     default: '#6c757d', // Grigio per stati sconosciuti
   };
@@ -398,8 +440,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     // Avvia l'aggiornamento automatico ogni 5 secondi
     this.startAutoUpdate();
     // Effect per reagire ai cambiamenti del veicolo selezionato
-    
-    
+
     effect(() => {
       const selected = this.selectedVeicle();
       if (this.map && selected) {
@@ -409,8 +450,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         this.addVeicleMarkers(); // Ricarica i marker per il nuovo veicolo selezionato
       }
     });
-
-
   }
 
   ngAfterViewInit(): void {
@@ -846,5 +885,38 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       (veicle) =>
         veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude
     ).length;
+  }
+
+  /**
+   * Conta i veicoli online/attivi (stati che corrispondono ai colori verdi)
+   * @returns Numero di veicoli online/attivi
+   */
+  public getVeiclesOnline(): number {
+    return this.veicleList().filter((veicle) => {
+      const status = veicle.status?.toLowerCase().trim() || '';
+      return status.includes('online') || status.includes('active');
+    }).length;
+  }
+
+  /**
+   * Conta i veicoli offline/inattivi (stati che corrispondono ai colori rossi)
+   * @returns Numero di veicoli offline/inattivi
+   */
+  public getVeiclesOffline(): number {
+    return this.veicleList().filter((veicle) => {
+      const status = veicle.status?.toLowerCase().trim() || '';
+      return status.includes('offline') || status.includes('inactive');
+    }).length;
+  }
+
+  /**
+   * Conta i veicoli in manutenzione (stati che corrispondono ai colori gialli)
+   * @returns Numero di veicoli in manutenzione
+   */
+  public getVeiclesMaintenance(): number {
+    return this.veicleList().filter((veicle) => {
+      const status = veicle.status?.toLowerCase().trim() || '';
+      return status.includes('Maintenance') || status.includes('maintenance');
+    }).length;
   }
 }
