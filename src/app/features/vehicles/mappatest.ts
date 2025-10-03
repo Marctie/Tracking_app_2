@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, inject, signal } from '@angular/core';
 import * as L from 'leaflet';
-import { VeicleService } from '../../services/veicle-service';
 import { MyMqttService } from '../../services/mymqtt-service';
+import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
 import { VeiclePosition } from '../../models/veicle-position';
 
@@ -26,114 +26,360 @@ import { VeiclePosition } from '../../models/veicle-position';
   imports: [],
   template: `
     <div class="map-container">
+      <!-- Header della mappa con titolo e controlli -->
       <div class="map-header">
-        <h2>Mappa Veicoli in Tempo Reale</h2>
+        <h2>🗺️ Mappa Veicoli in Tempo Reale</h2>
         <div class="header-controls">
-          <span class="auto-update-indicator">Aggiornamento automatico ogni 5s</span>
-          <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna Ora</button>
+          <span class="auto-update-indicator"> 🔄 Aggiornamento automatico ogni 5s </span>
+          <div class="control-buttons">
+            <button class="refresh-btn primary" (click)="refreshVeicles()">🔄 Ricarica Dati</button>
+            <button class="mqtt-refresh-btn secondary" (click)="refreshAllVehiclesWithMqtt()">
+              📡 Aggiorna MQTT
+            </button>
+          </div>
         </div>
       </div>
-      <p>
-        Visualizzazione delle posizioni dei veicoli dal database + aggiornamenti MQTT in tempo reale
-      </p>
+
+      <!-- Descrizione funzionalità -->
+      <div class="description">
+        <p>
+          📍 Visualizzazione delle posizioni dei veicoli dal database con aggiornamenti MQTT in
+          tempo reale. I marker colorati indicano lo stato di ogni veicolo.
+        </p>
+      </div>
 
       <!-- Statistiche veicoli con info MQTT -->
-      <div class="stats">
-        <span class="stat-item">
-          Veicoli totali: <strong>{{ veicleList().length }}</strong>
-        </span>
-        <span class="stat-item">
-          Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
-        </span>
-        <span class="stat-item">
-          Posizioni MQTT: <strong>{{ mqttService.positionVeiclesList().length }}</strong>
-        </span>
+      <div class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🚗</div>
+            <div class="stat-content">
+              <span class="stat-label">Veicoli Totali</span>
+              <span class="stat-value">{{ veicleList().length }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">📍</div>
+            <div class="stat-content">
+              <span class="stat-label">Con Posizione</span>
+              <span class="stat-value">{{ getVeiclesWithPosition() }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">📡</div>
+            <div class="stat-content">
+              <span class="stat-label">Dati MQTT</span>
+              <span class="stat-value">{{ mqttService.positionVeiclesList().length }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legenda stati veicoli -->
+      <div class="legend-section">
+        <h4>🎨 Legenda Stati Veicoli</h4>
+        <div class="legend-grid">
+          <div class="legend-item">
+            <div class="legend-color online"></div>
+            <span>Online/Attivo</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color offline"></div>
+            <span>Offline/Inattivo</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color maintenance"></div>
+            <span>In Manutenzione</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color unknown"></div>
+            <span>Stato Sconosciuto</span>
+          </div>
+        </div>
       </div>
 
       <!-- Container per la mappa Leaflet -->
-      <div id="map"></div>
+      <div class="map-wrapper">
+        <div id="map" class="leaflet-map"></div>
+      </div>
     </div>
   `,
   styles: `
+    /* === STILI PRINCIPALI === */
     .map-container {
+      max-width: 1200px;
+      margin: 0 auto;
       padding: 20px;
-      font-family: Arial, sans-serif;
-      height:100%;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 123, 255, 0.1);
+      border: 2px solid #007bff;
     }
 
-    .map-container h2 {
-      color: #007bff;
-      margin: 0;
-    }
-
+    /* === HEADER DELLA MAPPA === */
     .map-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .map-header h2 {
+      color: #007bff;
+      margin: 0;
+      font-size: 24px;
+      font-weight: bold;
     }
 
     .header-controls {
       display: flex;
-      align-items: center;
-      gap: 15px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
     }
 
     .auto-update-indicator {
       font-size: 12px;
       color: #28a745;
-      background-color: #d4edda;
-      padding: 4px 8px;
-      border-radius: 3px;
+      background: linear-gradient(135deg, #d4edda, #c3e6cb);
+      padding: 6px 12px;
+      border-radius: 20px;
       border: 1px solid #c3e6cb;
+      font-weight: 500;
     }
 
-    .refresh-btn {
-      padding: 8px 16px;
-      background-color: #28a745;
-      color: white;
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* === BOTTONI === */
+    .refresh-btn, .mqtt-refresh-btn {
+      padding: 10px 16px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
-      transition: background-color 0.2s;
-    }
-
-    .refresh-btn:hover {
-      background-color: #218838;
-    }
-
-    .stats {
+      font-weight: 500;
+      transition: all 0.3s ease;
       display: flex;
-      gap: 20px;
-      margin-bottom: 15px;
-      padding: 10px;
-      background-color: #f8f9fa;
-      border-radius: 5px;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .refresh-btn.primary {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .refresh-btn.primary:hover {
+      background: linear-gradient(135deg, #0056b3, #004085);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+
+    .mqtt-refresh-btn.secondary {
+      background: linear-gradient(135deg, #28a745, #1e7e34);
+      color: white;
+    }
+
+    .mqtt-refresh-btn.secondary:hover {
+      background: linear-gradient(135deg, #1e7e34, #155724);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    /* === DESCRIZIONE === */
+    .description {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
       border-left: 4px solid #007bff;
     }
 
-    .stat-item {
-      color: #666;
-      font-size: 14px;
+    .description p {
+      margin: 0;
+      color: #495057;
+      line-height: 1.5;
     }
 
-    .stat-item strong {
+    /* === SEZIONE STATISTICHE === */
+    .stats-section {
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-left: 4px solid #007bff;
+      transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8f9fa;
+      border-radius: 50%;
+    }
+
+    .stat-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
       color: #007bff;
     }
 
-    .map-container p {
-      color: #666;
-      margin-bottom: 15px;
+    /* === LEGENDA === */
+    .legend-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    /* Contenitore della mappa con dimensioni fisse */
-    #map { 
-      height: 400px; 
-      width: 100%;
-      border: 2px solid #007bff;
+    .legend-section h4 {
+      margin: 0 0 15px 0;
+      color: #495057;
+      font-size: 16px;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background: #f8f9fa;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #333;
+    }
+
+    .legend-color.online { background-color: #28a745; }
+    .legend-color.offline { background-color: #dc3545; }
+    .legend-color.maintenance { background-color: #ffc107; }
+    .legend-color.unknown { background-color: #6c757d; }
+
+    /* === MAPPA === */
+    .map-wrapper {
+      background: white;
+      padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .leaflet-map {
+      height: 500px;
+      width: 100%;
+      border-radius: 8px;
+      border: 2px solid #dee2e6;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* === RESPONSIVE DESIGN === */
+    @media (max-width: 768px) {
+      .map-container {
+        margin: 10px;
+        padding: 15px;
+      }
+
+      .map-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 15px;
+      }
+
+      .header-controls {
+        align-items: center;
+      }
+
+      .control-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .refresh-btn, .mqtt-refresh-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .legend-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .leaflet-map {
+        height: 400px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .map-header h2 {
+        font-size: 20px;
+      }
+
+      .legend-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .leaflet-map {
+        height: 350px;
+      }
     }
   `,
 })
@@ -349,6 +595,124 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     console.log("Aggiornamento manuale richiesto dall'utente");
     this.loadVeicles();
     this.startAutoUpdate();
+  }
+
+  /**
+   * Aggiorna le posizioni dei veicoli con i dati MQTT più recenti
+   * Cerca nei servizi MQTT e nel localStorage per ogni veicolo
+   */
+  public refreshAllVehiclesWithMqtt(): void {
+    console.log('Inizio aggiornamento di tutti i veicoli con dati MQTT');
+
+    const currentVehicles = this.veicleList();
+    let updatedCount = 0;
+
+    // Itera attraverso tutti i veicoli e cerca aggiornamenti MQTT
+    const updatedVehicles = currentVehicles.map((vehicle) => {
+      // 1. Prima prova a cercare nel signal del servizio MQTT
+      const mqttPosition = this.getMqttPositionFromService(vehicle.id);
+
+      // 2. Se non trovato, prova nel localStorage
+      const localStoragePosition = !mqttPosition
+        ? this.getMqttPositionFromLocalStorage(vehicle.id)
+        : null;
+
+      // 3. Usa il dato più recente trovato
+      const latestPosition = mqttPosition || localStoragePosition;
+
+      if (latestPosition) {
+        console.log(
+          `Posizione MQTT aggiornata trovata per ${vehicle.licensePlate}:`,
+          latestPosition
+        );
+        updatedCount++;
+
+        // Crea il veicolo aggiornato con la nuova posizione
+        return {
+          ...vehicle,
+          lastPosition: {
+            ...(vehicle.lastPosition ?? {}),
+            latitude: latestPosition.latitude,
+            longitude: latestPosition.longitude,
+            speed: latestPosition.speed || 0,
+            heading: latestPosition.heading || 0,
+            timestamp: latestPosition.timestamp ?? latestPosition.time ?? Date.now(),
+          },
+        };
+      }
+
+      // Restituisce il veicolo originale se non ci sono aggiornamenti MQTT
+      return vehicle;
+    });
+
+    // Aggiorna la lista dei veicoli con i dati MQTT
+    this.veicleList.set(updatedVehicles);
+
+    console.log(
+      `Aggiornamento MQTT completato. ${updatedCount} veicoli aggiornati su ${currentVehicles.length}`
+    );
+
+    // Aggiorna i marker sulla mappa
+    this.addVeicleMarkers();
+  }
+
+  /**
+   * Cerca la posizione del veicolo nel signal del servizio MQTT
+   * @param vehicleId - ID del veicolo da cercare
+   * @returns Posizione MQTT se trovata, null altrimenti
+   */
+  private getMqttPositionFromService(vehicleId: any): any {
+    try {
+      const mqttPositions = this.mqttService.positionVeiclesList();
+      const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
+
+      if (position) {
+        console.log(`Posizione trovata nel signal MQTT service per veicolo ID ${vehicleId}`);
+        return position;
+      }
+
+      console.log(`Nessuna posizione nel signal MQTT per veicolo ID ${vehicleId}`);
+      return null;
+    } catch (error) {
+      console.error('Errore durante la ricerca nel signal MQTT:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Cerca la posizione del veicolo nel localStorage
+   * @param vehicleId - ID del veicolo da cercare
+   * @returns Posizione MQTT se trovata, null altrimenti
+   */
+  private getMqttPositionFromLocalStorage(vehicleId: any): any {
+    try {
+      // Prova prima con l'ID del veicolo come chiave
+      let storedPosition = localStorage.getItem(vehicleId.toString());
+
+      if (storedPosition) {
+        const position = JSON.parse(storedPosition);
+        console.log(`Posizione trovata in localStorage per veicolo ID ${vehicleId}`);
+        return position;
+      }
+
+      // Se non trovato, prova con la lista generale MQTT
+      const mqttListData = localStorage.getItem('lista');
+      if (mqttListData) {
+        const mqttList = JSON.parse(mqttListData);
+        const position = mqttList.find((pos: any) => pos.vehicleId === vehicleId);
+
+        if (position) {
+          console.log(`Posizione trovata nella lista MQTT per veicolo ID ${vehicleId}`);
+          return position;
+        }
+      }
+
+      console.log(`Nessuna posizione in localStorage per veicolo ID ${vehicleId}`);
+      return null;
+    } catch (error) {
+      console.error('Errore leggendo localStorage:', error);
+      return null;
+    }
   }
 
   /**
