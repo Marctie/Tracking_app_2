@@ -1,4 +1,13 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  OnDestroy,
+  inject,
+  signal,
+  input,
+  effect,
+} from '@angular/core';
 import * as L from 'leaflet';
 import { MyMqttService } from '../../services/mymqtt-service';
 import { VeicleService } from '../../services/veicle-service';
@@ -387,6 +396,9 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
 
+  // Input per ricevere il veicolo selezionato dal componente padre
+  selectedVeicle = input<Veicles>();
+
   // Timer per l'aggiornamento automatico ogni 5 secondi
   private autoUpdateInterval: any = null;
   private readonly UPDATE_INTERVAL = 5000; // 5 secondi in millisecondi
@@ -396,12 +408,42 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
   veicleList = signal<Veicles[]>([]);
 
+  // Mappa dei colori per gli stati dei veicoli
+  private statusColorMap: { [key: string]: string } = {
+    online: '#28a745', // Verde per veicoli online
+    active: '#28a745', // Verde per veicoli attivi
+    offline: '#dc3545', // Rosso per veicoli offline
+    inactive: '#dc3545', // Rosso per veicoli inattivi
+    maintenance: '#ffc107', // Giallo per manutenzione
+    manutenzione: '#ffc107', // Giallo per manutenzione (italiano)
+    transit: '#17a2b8', // Azzurro per veicoli in transito
+    transito: '#17a2b8', // Azzurro per veicoli in transito (italiano)
+    moving: '#17a2b8', // Azzurro per veicoli in movimento
+    stopped: '#6f42c1', // Viola per veicoli fermi
+    fermo: '#6f42c1', // Viola per veicoli fermi (italiano)
+    warning: '#fd7e14', // Arancione per avvisi
+    error: '#e83e8c', // Rosa per errori
+    default: '#6c757d', // Grigio per stati sconosciuti
+  };
+
   ngOnInit(): void {
     // Carica i dati dei veicoli
     this.loadVeicles();
 
     // Avvia l'aggiornamento automatico ogni 5 secondi
     this.startAutoUpdate();
+
+    // Effect per reagire ai cambiamenti del veicolo selezionato
+    effect(() => {
+      const selected = this.selectedVeicle();
+
+      if (this.map && selected) {
+        console.log(
+          `Veicolo selezionato cambiato: ${selected.licensePlate} (Stato: ${selected.status})`
+        );
+        this.addVeicleMarkers(); // Ricarica i marker per il nuovo veicolo selezionato
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -522,18 +564,83 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
   private addVeicleMarkers(): void {
     this.clearMarkers();
 
+    // Usa selectedVeicle se disponibile per mostrare un singolo veicolo
+    if (this.selectedVeicle()) {
+      const selectedVeicle = this.selectedVeicle()!;
+
+      if (
+        selectedVeicle.lastPosition &&
+        selectedVeicle.lastPosition.latitude &&
+        selectedVeicle.lastPosition.longitude
+      ) {
+        this.addVeicleMarker(selectedVeicle);
+
+        // Centra la mappa sul veicolo selezionato
+        const position = selectedVeicle.lastPosition;
+        this.map.setView([position.latitude, position.longitude], 15);
+
+        console.log(
+          `Mostrato veicolo selezionato: ${selectedVeicle.licensePlate} (Stato: ${selectedVeicle.status})`
+        );
+      } else {
+        console.warn('Il veicolo selezionato non ha una posizione valida');
+      }
+
+      return;
+    }
+
+    // Altrimenti mostra tutti i veicoli disponibili
     this.veicleList().forEach((veicle) => {
       if (veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude) {
         this.addVeicleMarker(veicle);
       }
     });
 
+    // Aggiusta la vista per includere tutti i marker
+    if (this.markers.length > 0) {
+      const group = new L.FeatureGroup(this.markers);
+      this.map.fitBounds(group.getBounds().pad(0.1));
+    }
+
     console.log(`Aggiunti ${this.markers.length} marker sulla mappa`);
   }
 
   private addVeicleMarker(veicle: Veicles): void {
     const position = veicle.lastPosition;
-    const marker = L.marker([position.latitude, position.longitude]).addTo(this.map);
+
+    // Determina il colore del marker basato sullo stato del veicolo
+    const markerColor = this.getStatusColor(veicle.status);
+
+    // Crea un'icona personalizzata con il colore appropriato
+    const customIcon = L.divIcon({
+      className: 'custom-vehicle-marker',
+      html: `
+        <div style="
+          background-color: ${markerColor};
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          color: white;
+          font-weight: bold;
+        ">
+          🚗
+        </div>
+      `,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+      popupAnchor: [0, -13],
+    });
+
+    // Crea il marker con l'icona personalizzata
+    const marker = L.marker([position.latitude, position.longitude], {
+      icon: customIcon,
+    }).addTo(this.map);
 
     const mqttPositions = this.mqttService.positionVeiclesList();
     const hasRecentMqttData = mqttPositions.some((mqttPos) => {
@@ -548,29 +655,86 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     const dataSource = hasRecentMqttData ? 'MQTT' : 'Database';
     const sourceColor = hasRecentMqttData ? '#10b981' : '#6b7280';
 
+    // Contenuto del popup con informazioni sul veicolo e il suo stato
     const popupContent = `
-      <div style="font-family: Arial, sans-serif;">
-        <h4 style="margin: 0 0 10px 0; color: #007bff;">${veicle.licensePlate}</h4>
-        <div style="background: ${sourceColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-bottom: 8px;">
-          ${dataSource}
+      <div style="font-family: Arial, sans-serif; min-width: 250px;">
+        <h4 style="margin: 0 0 10px 0; color: #007bff; text-align: center;">
+          🚗 ${veicle.licensePlate}
+        </h4>
+        
+        <!-- Indicatore dello stato del veicolo -->
+        <div style="
+          background: ${markerColor}; 
+          color: white; 
+          padding: 6px 12px; 
+          border-radius: 6px; 
+          font-size: 12px; 
+          margin-bottom: 12px;
+          text-align: center;
+          font-weight: bold;
+          text-transform: uppercase;
+        ">
+          📊 STATO: ${veicle.status}
         </div>
-        <p style="margin: 5px 0;"><strong>Modello:</strong> ${veicle.model}</p>
-        <p style="margin: 5px 0;"><strong>Marca:</strong> ${veicle.brand}</p>
-        <p style="margin: 5px 0;"><strong>Stato:</strong> ${veicle.status}</p>
-        <p style="margin: 5px 0;"><strong>Velocità:</strong> ${position.speed} km/h</p>
-        <p style="margin: 5px 0;"><strong>Direzione:</strong> ${position.heading}°</p>
-        <p style="margin: 5px 0;"><strong>Coordinate:</strong><br>
-          Lat: ${position.latitude.toFixed(6)}<br>
-          Lng: ${position.longitude.toFixed(6)}
-        </p>
-        <p style="margin: 5px 0;"><strong>Ultimo aggiornamento:</strong><br>
-          ${this.formatDate(position.timestamp)}
-        </p>
+        
+        <!-- Fonte dei dati -->
+        <div style="
+          background: ${sourceColor}; 
+          color: white; 
+          padding: 3px 8px; 
+          border-radius: 3px; 
+          font-size: 10px; 
+          margin-bottom: 10px;
+          text-align: center;
+        ">
+          📡 FONTE: ${dataSource}
+        </div>
+        
+        <div style="display: grid; gap: 6px;">
+          <div><strong>🏭 Modello:</strong> ${veicle.model}</div>
+          <div><strong>🏢 Marca:</strong> ${veicle.brand}</div>
+          <div><strong>⚡ Velocità:</strong> ${position.speed} km/h</div>
+          <div><strong>🧭 Direzione:</strong> ${position.heading}°</div>
+          <div><strong>📍 Coordinate:</strong><br>
+            &nbsp;&nbsp;Lat: ${position.latitude.toFixed(6)}<br>
+            &nbsp;&nbsp;Lng: ${position.longitude.toFixed(6)}
+          </div>
+          <div style="font-size: 11px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+            <strong>🕒 Ultimo aggiornamento:</strong><br>
+            ${this.formatDate(position.timestamp)}
+          </div>
+        </div>
       </div>
     `;
 
     marker.bindPopup(popupContent);
     this.markers.push(marker);
+  }
+
+  /**
+   * Determina il colore del marker basato sullo stato del veicolo
+   * @param status - Lo stato del veicolo
+   * @returns Il colore esadecimale corrispondente allo stato
+   */
+  private getStatusColor(status: string): string {
+    // Normalizza lo stato a lowercase per il confronto
+    const normalizedStatus = status?.toLowerCase().trim() || 'unknown';
+
+    // Cerca una corrispondenza diretta
+    if (this.statusColorMap[normalizedStatus]) {
+      return this.statusColorMap[normalizedStatus];
+    }
+
+    // Cerca corrispondenze parziali per stati compositi
+    for (const [key, color] of Object.entries(this.statusColorMap)) {
+      if (normalizedStatus.includes(key)) {
+        return color;
+      }
+    }
+
+    // Ritorna il colore di default se nessuna corrispondenza
+    console.log(`Stato sconosciuto: ${status}, uso colore di default`);
+    return this.statusColorMap['default'];
   }
 
   private clearMarkers(): void {
