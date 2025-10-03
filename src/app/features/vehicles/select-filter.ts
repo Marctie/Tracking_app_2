@@ -8,7 +8,7 @@ import {
   output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Mappatest } from "./mappatest";
+import { Mappatest } from './mappatest';
 
 @Component({
   selector: 'app-select-filter',
@@ -25,17 +25,18 @@ import { Mappatest } from "./mappatest";
             class="filter-input"
             placeholder="Cerca..."
           />
-          <button class="clear-btn" (click)="clearInput(textFilter)" aria-label="Clear">×</button>
+          <button class="clear-btn" (click)="clearInput(textFilter)" aria-label="Clear">X</button>
         </div>
       </div>
       <br />
       <div class="select-wrap">
-        <select [(ngModel)]="valueOption" class="filter-select" aria-label="Seleziona">
-          <option>--Seleziona il filtro--</option>
+        <select [(ngModel)]="valueOption" class="filter-select" aria-label="Seleziona" >
+          <option value=''>--Seleziona il filtro--</option>
           <option value="licensePlate">Targa</option>
           <option value="model">Modello</option>
         </select>
       </div>
+      <button>vai alla mappa generale</button>
     </div>
   `,
   styles: `
@@ -49,8 +50,8 @@ import { Mappatest } from "./mappatest";
     .filter-wrap {
       display: flex;
       flex-direction: row;
+      justify-content:center;
       gap: 15px;
-      max-width: 500px;
       width: 100%;
       padding: 20px;
       background-color: #f8f9fa;
