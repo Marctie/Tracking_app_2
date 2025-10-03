@@ -8,10 +8,11 @@ import {
   output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Mappatest } from "./mappatest";
 
 @Component({
   selector: 'app-select-filter',
-  imports: [FormsModule],
+  imports: [FormsModule, Mappatest],
   template: `
     <div class="filter-wrap">
       <p></p>
