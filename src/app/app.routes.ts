@@ -23,7 +23,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/vehicles/localize').then((m) => m.Localize),
     canActivate: [authGuard],
   },
-    // pagina con mappe per test
+
+  {
+    path: 'generalmap',
+    loadComponent: () => import('./features/vehicles/general-map').then((m) => m.GeneralMap),
+    canActivate: [authGuard],
+  },
+  // pagina con mappe per test
   {
     path: 'mappatest',
     loadComponent: () => import('./features/vehicles/mappatest').then((m) => m.Mappatest),

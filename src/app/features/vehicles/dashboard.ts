@@ -24,7 +24,10 @@ import { IFilter, SelectFilter } from './select-filter';
   template: `
     <div class="dashboard-container">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
-      <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
+      <div class="marco" >
+        <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
+      </div>
+      
       <div class="table-wrapper">
         <table>
           <thead>
@@ -405,7 +408,6 @@ export class Dashboard implements OnInit {
     const lista = this.veicleList();
     let trimText = this.value().textFilter ? this.value().textFilter : '';
     return lista.filter((veicolo) => {
-      
       if (this.value().valueOption === 'licensePlate') {
         console.log('filtro per targa');
         return veicolo.licensePlate.toUpperCase().includes(trimText);
@@ -413,7 +415,6 @@ export class Dashboard implements OnInit {
         console.log('filtro per brand');
         return veicolo.model.toUpperCase().includes(trimText);
       }
-
     });
   });
   value = signal<IFilter>({} as IFilter);
@@ -561,14 +562,15 @@ export class Dashboard implements OnInit {
     ).length;
   }
 
+  // Metodo per il filtraggio dei campi in base a targa o modello
   onFilterBy(value: IFilter) {
     this.value.set(value);
-     if (!value.textFilter || value.textFilter.trim() === '') {
-    // Ricarica i dati originari solo se il filtro è vuoto
-    console.log('campovuoto')
-     setTimeout(()=>{
-      this.loadVeicles()
-     },500)
-  }}   
-  
+    if (!value.textFilter || value.textFilter.trim() === '') {
+      // Ricarica i dati originari solo se il filtro è vuoto
+      console.log('campovuoto');
+      setTimeout(() => {
+        this.loadVeicles();
+      }, 500);
+    }
+  }
 }

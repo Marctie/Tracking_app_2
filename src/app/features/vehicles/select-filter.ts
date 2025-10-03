@@ -3,16 +3,19 @@ import {
   AfterViewChecked,
   Component,
   EventEmitter,
+  inject,
   OnChanges,
   OnInit,
   output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Mappatest } from './mappatest';
+import { Router, RouterModule } from '@angular/router';
+import { GeneralMap } from './general-map';
 
 @Component({
   selector: 'app-select-filter',
-  imports: [FormsModule, Mappatest],
+  imports: [FormsModule, Mappatest, RouterModule],
   template: `
     <div class="filter-wrap">
       <p></p>
@@ -30,13 +33,13 @@ import { Mappatest } from './mappatest';
       </div>
       <br />
       <div class="select-wrap">
-        <select [(ngModel)]="valueOption" class="filter-select" aria-label="Seleziona" >
-          <option value=''>--Seleziona il filtro--</option>
+        <select [(ngModel)]="valueOption" class="filter-select" aria-label="Seleziona">
+          <option value="">--Seleziona il filtro--</option>
           <option value="licensePlate">Targa</option>
           <option value="model">Modello</option>
         </select>
       </div>
-      <button>vai alla mappa generale</button>
+      <button class="btn" (click)="goMapGen()">Vai alla mappa completa dei veicoli</button>
     </div>
   `,
   styles: `
@@ -212,6 +215,10 @@ import { Mappatest } from './mappatest';
   `,
 })
 export class SelectFilter {
+goMapGen() {
+this.router.navigate(['/generalmap']);
+}
+  router = inject(Router);
   valueOption = '';
   //Output per far salire i dati in dashboard, tipizzando i 2 valori di filtraggio
   filterParam = output<{ valueOption: string; textFilter: string }>();

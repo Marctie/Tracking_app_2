@@ -261,32 +261,25 @@ export class VeicleModal implements OnInit, AfterViewInit {
   // Metodo elementare per mostrare il veicolo selezionato
    showSelectedVehicleOnMap(): void {
     console.log('Veicolo selezionato ricevuto:', this.selectedVeicle);
-
     // Controllo del veicolo selezionato
     if (!this.selectedVeicle) {
       console.log('ERRORE: Nessun veicolo selezionato!');
       return;
     }
-
     // Controllo se il veicolo ha una posizione
     if (!this.selectedVeicle()?.lastPosition) {
       console.log('ERRORE: Il veicolo non ha una posizione!');
       return;
     }
-
     const lat = this.selectedVeicle()?.lastPosition.latitude;
     const lng = this.selectedVeicle()?.lastPosition.longitude;
-
     if (!lat || !lng) {
       console.log('ERRORE: Coordinate non valide!', lat, lng);
       return;
     }
-
     console.log('Creo marker per:', this.selectedVeicle()?.licensePlate, 'a:', lat, lng);
-
     // Crea il marker del veicolo
     const marker = L.marker([lat, lng]).addTo(this.map);
-
     // Popup con info veicolo
     const popup = `
       <div>
