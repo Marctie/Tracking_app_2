@@ -28,9 +28,8 @@ import { MyMqttService } from '../../../services/mymqtt-service';
           <div class="map-container">
             <div id="map" #leafletMap></div>
           </div>
-
-          <div class="details-container">
-            <p>Dettagli del veicolo</p>
+          <div class="details-container" style="text-align: left;">
+            <p style="text-align: center;">Dettagli del veicolo</p>
             @if (selectedVeicle()){
             <div class="detail-row">
               <strong>Targa:</strong> {{ selectedVeicle()?.licensePlate }}
@@ -39,24 +38,30 @@ import { MyMqttService } from '../../../services/mymqtt-service';
             <div class="detail-row"><strong>Marca:</strong> {{ selectedVeicle()?.brand }}</div>
             <div class="detail-row"><strong>Stato:</strong> {{ selectedVeicle()?.status }}</div>
             <div class="detail-row">
+              <strong>Velocità:</strong> {{ this.selectedVeicle()?.lastPosition?.speed }}km/h
+            </div>
+            <div class="detail-row">
               <strong>Creato il:</strong> {{ formatDate(selectedVeicle()!.createdAt) }}
             </div>
-            @if(selectedVeicle()?.lastPosition){
-            <strong>Ultima posizione:</strong>
-            <div class="position-info">
-              Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
-              Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
+            <div style="text-align: center;">
+              @if(selectedVeicle()?.lastPosition){
+              <strong>Ultima posizione:</strong>
+              <div class="position-info">
+                Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
+                Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
+              </div>
+              }
+              <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna posizione</button>
             </div>
-            } }
-            <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna posizione</button>
+            }
           </div>
-          <!-- </div>  -->
+          <!--</div>-->
         </div>
         <div class="actions">
-          <button class="blackbtn" (click)="exitModal()">Chiudi</button>
+          <button class="blackbtn">Chiudi</button>
         </div>
       </div>
-      <!-- </div> -->
+      <!--</div>-->
     </div>
   `,
   styles: `
@@ -259,7 +264,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
   }
 
   // Metodo elementare per mostrare il veicolo selezionato
-   showSelectedVehicleOnMap(): void {
+  showSelectedVehicleOnMap(): void {
     console.log('Veicolo selezionato ricevuto:', this.selectedVeicle);
     // Controllo del veicolo selezionato
     if (!this.selectedVeicle) {
@@ -280,17 +285,6 @@ export class VeicleModal implements OnInit, AfterViewInit {
     console.log('Creo marker per:', this.selectedVeicle()?.licensePlate, 'a:', lat, lng);
     // Crea il marker del veicolo
     const marker = L.marker([lat, lng]).addTo(this.map);
-    // Popup con info veicolo
-    const popup = `
-      <div>
-        <h4>${this.selectedVeicle()?.licensePlate}</h4>
-        <p><b>Modello:</b> ${this.selectedVeicle()?.model}</p>
-        <p><b>Velocità:</b> ${this.selectedVeicle()?.lastPosition.speed} km/h</p>
-        <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
-      </div>
-    `;
-
-    marker.bindPopup(popup).openPopup();
 
     // Centra la mappa sul veicolo
     this.map.setView([lat, lng], 15);
@@ -299,14 +293,10 @@ export class VeicleModal implements OnInit, AfterViewInit {
     this.markers.push(marker);
   }
 
-  //Chiusura della modale col bottone X
-  exitModal() {
-    this.hideModal.emit(false);
-  }
   //Chiusura della modale cliccando fuori dagli spazi
-  onOverlayClick(event: MouseEvent): void {
-    this.hideModal.emit(false);
-  }
+  // onOverlayClick(event: MouseEvent): void {
+  //   // this.hideModal.emit(false);
+  // }
   //formattazione della data
   formatDate(data: string | Date): string {
     if (!data) return '';
@@ -438,10 +428,6 @@ export class VeicleModal implements OnInit, AfterViewInit {
     // Popup con indicazione che i dati sono da MQTT
     const popup = `
       <div>
-        <h4>${this.selectedVeicle()?.licensePlate}</h4>
-        <p><b>Modello:</b> ${this.selectedVeicle()?.model}</p>
-        <p><b>Velocità:</b> ${mqttPosition.speed || 'N/A'} km/h</p>
-        <p><b>Coordinate:</b> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
         <p><b>Ultimo aggiornamento:</b> ${new Date(mqttPosition.timestamp).toLocaleTimeString()}</p>
       </div>
     `;
@@ -454,7 +440,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
     // Salva il marker
     this.markers.push(marker);
 
-    console.log('🗺️ Mappa aggiornata con successo');
+    console.log(' Mappa aggiornata con successo');
   }
   /**
    * Rimuove tutti i marker dalla mappa
@@ -465,6 +451,6 @@ export class VeicleModal implements OnInit, AfterViewInit {
       this.map.removeLayer(marker);
     });
     this.markers = [];
-    console.log('🧹 Marker rimossi dalla mappa');
+    console.log(' Marker rimossi dalla mappa');
   }
 }

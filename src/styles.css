@@ -145,7 +145,7 @@ button{font:inherit}
 
     /* Contenitore della mappa con dimensioni fisse */
     #map { 
-      height: 400px; 
+      height: 370px; 
       width: 100%;
       border: 2px solid #007bff;
       border-radius: 8px;

@@ -94,7 +94,6 @@ import { MyMqttService } from '../../services/mymqtt-service';
   styles: `
     /* === STILI PRINCIPALI === */
     .map-container {
-      max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
       font-family: 'Arial', sans-serif;
@@ -102,6 +101,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0, 123, 255, 0.1);
       border: 2px solid #007bff;
+      height:40%;
     }
 
     /* === HEADER DELLA MAPPA === */
@@ -429,18 +429,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   // Mappa dei colori per gli stati dei veicoli
   private statusColorMap: { [key: string]: string } = {
     active: '#28a745', // Verde per veicoli attivi
+    inactive:'#dc3545', //Rosso per veicoli inattivi 
     offline: '#dc3545', // Rosso per veicoli offline
     maintenance: '#ffc107', // Giallo per manutenzione
     default: '#6c757d', // Grigio per stati sconosciuti
   };
-
-  ngOnInit(): void {
-    // Carica i dati dei veicoli
-    this.loadVeicles();
-    // Avvia l'aggiornamento automatico ogni 5 secondi
-    this.startAutoUpdate();
-    // Effect per reagire ai cambiamenti del veicolo selezionato
-
+  constructor(){
     effect(() => {
       const selected = this.selectedVeicle();
       if (this.map && selected) {
@@ -450,6 +444,16 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         this.addVeicleMarkers(); // Ricarica i marker per il nuovo veicolo selezionato
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Carica i dati dei veicoli
+    this.loadVeicles();
+    // Avvia l'aggiornamento automatico ogni 5 secondi
+    this.startAutoUpdate();
+    // Effect per reagire ai cambiamenti del veicolo selezionato
+
+    
   }
 
   ngAfterViewInit(): void {
