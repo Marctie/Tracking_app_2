@@ -69,8 +69,7 @@ import { IFilter, SelectFilter } from './select-filter';
       @if (totalPages() > 1) {
       <div class="pagination-container">
         <div class="pagination-info">
-          Pagina {{ currentPage() }} di {{ totalPages() }} ({{ veicleList().length }} veicoli
-          totali)
+          Pagina {{ currentPage() }} di {{ totalPages() }} ({{ totalCount() }} veicoli totali)
         </div>
         <div class="pagination-controls">
           <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage() === 1">
@@ -114,7 +113,7 @@ import { IFilter, SelectFilter } from './select-filter';
       }
       <div class="stats">
         <span class="stat-item">
-          Veicoli totali: <strong>{{ veicleList().length }}</strong>
+          Veicoli totali: <strong>{{ totalCount() }}</strong>
         </span>
         <span class="stat-item">
           Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
@@ -394,15 +393,16 @@ export class Dashboard implements OnInit {
   selectedVeicle = signal<Veicles>({} as Veicles);
   mqttService = inject(MyMqttService);
 
-  // Proprietà per la paginazione
+  // Proprietà per la paginazione lato server
   currentPage = signal(1);
   itemsPerPage = 10;
   totalPages = signal(0);
+  totalCount = signal(0); // Nuovo: conteggio totale dal server
 
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
-  veicleList = signal<Veicles[]>([]);
-  paginatedVeicles = signal<Veicles[]>([]);
+  veicleList = signal<Veicles[]>([]); // Solo i veicoli della pagina corrente
+  paginatedVeicles = signal<Veicles[]>([]); // Non più necessario ma mantenuto per compatibilità
   router = inject(Router);
   filterList = computed(() => {
     const lista = this.veicleList();
@@ -424,9 +424,8 @@ export class Dashboard implements OnInit {
       this.userLogin.login.name;
       // console.log('dati di effect da dashboard', this.mqttService.positionVeiclesList());
       console.log(this.filterList());
-      if (this.filterList()) {
-        this.updatePagination(this.filterList());
-      }
+      // Nota: Il filtraggio ora deve essere gestito lato server
+      // Per ora manteniamo solo il logging, il filtro sarà implementato in futuro
     });
   }
 
@@ -436,13 +435,26 @@ export class Dashboard implements OnInit {
   }
 
   /**
-   * Carica la lista dei veicoli dal servizio e aggiorna la paginazione
+   * Carica la lista dei veicoli dal servizio con paginazione lato server
+   * @param page - Numero di pagina da caricare (default: pagina corrente)
    */
-  loadVeicles(): void {
-    this.veicleService.getListVeicle().subscribe((response) => {
+  loadVeicles(page?: number): void {
+    const currentPageToLoad = page || this.currentPage();
+
+    this.veicleService.getListVeicle(currentPageToLoad, this.itemsPerPage).subscribe((response) => {
+      // Aggiorna solo i veicoli della pagina corrente
       this.veicleList.set(response.items);
-      this.updatePagination(this.veicleList());
-      console.log('Veicoli caricati:', this.veicleList());
+      this.paginatedVeicles.set(response.items); // Per compatibilità con il template
+
+      // Aggiorna i metadati di paginazione dal server
+      this.totalCount.set(response.totalCount);
+      this.totalPages.set(response.totalPages);
+      this.currentPage.set(response.page);
+
+      console.log(
+        `Caricati ${response.items.length} veicoli per la pagina ${response.page}/${response.totalPages}`
+      );
+      console.log(`Totale veicoli sul server: ${response.totalCount}`);
     });
   }
 
@@ -498,7 +510,7 @@ export class Dashboard implements OnInit {
    */
   goToMap(veicle: Veicles, event: Event) {
     if (!this.showModal()) {
-      //serve per bloccare la propagazione 
+      //serve per bloccare la propagazione
       event.stopPropagation();
     }
     this.selectedVeicle.set(veicle);
@@ -511,29 +523,11 @@ export class Dashboard implements OnInit {
     console.log('entro nella funzione gotoMap con questi dati  ->', this.messageStorage);
   }
 
-  // Metodi per la paginazione
-  updatePagination(veicleList: Veicles[]): void {
-    const total = Math.ceil(veicleList.length / this.itemsPerPage);
-    this.totalPages.set(total);
-
-    if (this.currentPage() > total && total > 0) {
-      this.currentPage.set(total);
-    }
-
-    this.updatePaginatedVeicles(veicleList);
-  }
-
-  updatePaginatedVeicles(veicleList: Veicles[]): void {
-    const startIndex = (this.currentPage() - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    const paginated = veicleList.slice(startIndex, endIndex);
-    this.paginatedVeicles.set(paginated);
-  }
-
+  // Metodi per la paginazione lato server
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages()) {
-      this.currentPage.set(page);
-      this.updatePaginatedVeicles(this.veicleList());
+      console.log(`Caricamento pagina ${page}...`);
+      this.loadVeicles(page); // Carica direttamente dal server
     }
   }
 
@@ -570,12 +564,13 @@ export class Dashboard implements OnInit {
   onFilterBy(value: IFilter) {
     this.value.set(value);
     if (!value.textFilter || value.textFilter.trim() === '') {
-      // Ricarica i dati originari solo se il filtro è vuoto
-      console.log('campovuoto');
+      // Ricarica i dati originari dalla prima pagina se il filtro è vuoto
+      console.log('filtro vuoto - ricaricamento prima pagina');
       setTimeout(() => {
-        this.loadVeicles();
+        this.loadVeicles(1); // Ricarica dalla prima pagina
       }, 500);
     }
+    // Nota: Il filtro con testo dovrà essere implementato lato server in futuro
   }
 
   //metodo per la chiusura della modale fuori dalla modale

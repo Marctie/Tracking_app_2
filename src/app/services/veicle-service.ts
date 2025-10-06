@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Veicles } from '../models/veicles';
 import { BASEURL, VEICLEURL } from '../models/constants';
@@ -13,8 +13,11 @@ export class VeicleService {
 
   constructor() {}
 
-  getListVeicle(): Observable<IVeicleResponse> {
-    return this.http.get<IVeicleResponse>(VEICLEURL)
-  }
+  getListVeicle(page: number = 1, pageSize: number = 10): Observable<IVeicleResponse> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
 
+    return this.http.get<IVeicleResponse>(VEICLEURL, { params });
+  }
 }
