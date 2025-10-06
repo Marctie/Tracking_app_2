@@ -17,7 +17,7 @@ import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-veiclemodal',
-  imports: [CommonModule,],
+  imports: [CommonModule],
   template: `
     <!-- <div class="modal-overlay" (click)="onOverlayClick($event)"> -->
     <div class="modal-overlay">
@@ -90,14 +90,13 @@ font-size:20px;
 
 
 .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.10);
+    position: absolute;
+    bottom: 0; left: 0; width:fit-content; height: auto;
+    min-width:1000px;
     z-index: 99;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
     box-sizing: border-box;
 }
 
@@ -106,7 +105,6 @@ font-size:20px;
     color: var(--text, #0f172a);
     padding: 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
     z-index: 100;
     width: 80%;
     max-width: 1000px;

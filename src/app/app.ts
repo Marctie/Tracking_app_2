@@ -65,16 +65,16 @@ export class App implements OnInit {
         const rawLista = localStorage.getItem('lista');
         let lista: VeiclePosition[] = rawLista ? JSON.parse(rawLista) : [];
 
-        if (message.latitude && message.vehicleId) {
-          // Rimuove la posizione precedente dello stesso veicolo
-          lista = lista.filter((x) => x.vehicleId !== message.vehicleId);
-          // Aggiunge la nuova posizione
-          lista.push(message);
-          // Salva nel localStorage per il singolo veicolo
-          localStorage.setItem(message.vehicleId.toString(), JSON.stringify(message));
+        // if (message.latitude && message.vehicleId) {
+        //   // Rimuove la posizione precedente dello stesso veicolo
+        //   lista = lista.filter((x) => x.vehicleId !== message.vehicleId);
+        //   // Aggiunge la nuova posizione
+        //   lista.push(message);
+        //   // Salva nel localStorage per il singolo veicolo
+        //   localStorage.setItem(message.vehicleId.toString(), JSON.stringify(message));
 
-          console.log('Posizione salvata per veicolo:', message.vehicleId);
-        }
+        //   console.log('Posizione salvata per veicolo:', message.vehicleId);
+        // }
 
         // 2. NUOVO: Aggiorna anche il signal del servizio MQTT per uso immediato
         this.updateMqttServiceSignal(lista);

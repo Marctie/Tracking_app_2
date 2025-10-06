@@ -22,12 +22,12 @@ import { IFilter, SelectFilter } from './select-filter';
   selector: 'app-dashboard',
   imports: [CommonModule, VeicleModal, SelectFilter],
   template: `
-    <div class="dashboard-container">
+    <div class="dashboard-container" (click)="onClickOutsideModal()">
       <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
-      <div class="marco" >
+      <div class="marco">
         <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       </div>
-      
+
       <div class="table-wrapper">
         <table>
           <thead>
@@ -57,16 +57,7 @@ import { IFilter, SelectFilter } from './select-filter';
               </td>
               }
               <td class="center">
-                <button (click)="goToMap(item)">Mostra Dettagli</button>
-                @if (showModal()) {
-                <app-veiclemodal
-                  [titolo]="titoloAlert ?? ''"
-                  [testo]="descrizioneAlert ?? ''"
-                  [selectedVeicle]="selectedVeicle()"
-                  (hideModal)="showModal.set($event)"
-                >
-                </app-veiclemodal>
-                }
+                <button (click)="goToMap(item, $event)">Mostra Dettagli</button>
               </td>
             </tr>
             } }
@@ -130,6 +121,15 @@ import { IFilter, SelectFilter } from './select-filter';
         </span>
       </div>
     </div>
+    @if (showModal()) {
+    <app-veiclemodal
+      [titolo]="titoloAlert ?? ''"
+      [testo]="descrizioneAlert ?? ''"
+      [selectedVeicle]="selectedVeicle()"
+      (hideModal)="showModal.set($event)"
+    >
+    </app-veiclemodal>
+    }
   `,
   styles: `
   .center{
@@ -442,7 +442,7 @@ export class Dashboard implements OnInit {
     this.veicleService.getListVeicle().subscribe((response) => {
       this.veicleList.set(response.items);
       this.updatePagination(this.veicleList());
-      console.log('Veicoli caricati:', this.veicleList().length);
+      console.log('Veicoli caricati:', this.veicleList());
     });
   }
 
@@ -496,7 +496,11 @@ export class Dashboard implements OnInit {
    * Apre il modal con i dettagli del veicolo selezionato
    * @param veicle - Veicolo di cui mostrare i dettagli
    */
-  goToMap(veicle: Veicles) {
+  goToMap(veicle: Veicles, event: Event) {
+    if (!this.showModal()) {
+      //serve per bloccare la propagazione 
+      event.stopPropagation();
+    }
     this.selectedVeicle.set(veicle);
     this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
@@ -572,5 +576,13 @@ export class Dashboard implements OnInit {
         this.loadVeicles();
       }, 500);
     }
+  }
+
+  //metodo per la chiusura della modale fuori dalla modale
+  onClickOutsideModal() {
+    if (this.showModal()) {
+      this.showModal.set(false);
+    }
+    console.log(this.showModal(), 'valore');
   }
 }

@@ -24,9 +24,8 @@ import { MyMqttService } from '../../services/mymqtt-service';
         <h2>Mappa Veicoli in Tempo Reale</h2>
         <div class="header-controls">
           <div class="control-buttons">
-            <button class="refresh-btn primary" (click)="refreshVeicles()">Ricarica Dati</button>
-            <button class="mqtt-refresh-btn secondary" (click)="refreshAllVehiclesWithMqtt()">
-              Aggiorna
+            <button class="mqtt-refresh-btn primary" (click)="refreshAllVehiclesWithMqtt()">
+              Aggiorna Posizioni
             </button>
           </div>
         </div>
@@ -146,8 +145,8 @@ import { MyMqttService } from '../../services/mymqtt-service';
     }
 
     /* === BOTTONI === */
-    .refresh-btn, .mqtt-refresh-btn {
-      padding: 10px 16px;
+    .mqtt-refresh-btn {
+      padding: 12px 20px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -159,23 +158,12 @@ import { MyMqttService } from '../../services/mymqtt-service';
       gap: 6px;
     }
 
-    .refresh-btn.primary {
-      background: linear-gradient(135deg, #007bff, #0056b3);
-      color: white;
-    }
-
-    .refresh-btn.primary:hover {
-      background: linear-gradient(135deg, #0056b3, #004085);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-    }
-
-    .mqtt-refresh-btn.secondary {
+    .mqtt-refresh-btn.primary {
       background: linear-gradient(135deg, #28a745, #1e7e34);
       color: white;
     }
 
-    .mqtt-refresh-btn.secondary:hover {
+    .mqtt-refresh-btn.primary:hover {
       background: linear-gradient(135deg, #1e7e34, #155724);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
@@ -359,7 +347,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
         width: 100%;
       }
 
-      .refresh-btn, .mqtt-refresh-btn {
+      .mqtt-refresh-btn {
         width: 100%;
         justify-content: center;
       }
@@ -511,6 +499,32 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const mqttPositions = this.mqttService.positionVeiclesList();
       console.log('Posizioni MQTT disponibili:', mqttPositions.length);
 
+      // COPILOT DA CANCELLARE
+      console.log('📡 === ANALISI COMPLETA DATI MQTT ===');
+      if (mqttPositions.length > 0) {
+        mqttPositions.forEach((mqttData, index) => {
+          console.log(`📍 MQTT ${index + 1}:`, {
+            vehicleId: mqttData.vehicleId,
+            tutte_le_proprietà: Object.keys(mqttData),
+            dati_completi: mqttData,
+          });
+
+          // Cerca qualsiasi proprietà che potrebbe contenere lo stato
+          Object.keys(mqttData).forEach((key) => {
+            if (
+              key.toLowerCase().includes('status') ||
+              key.toLowerCase().includes('state') ||
+              key.toLowerCase().includes('stato')
+            ) {
+              console.log(`🔍 Possibile campo stato trovato: ${key} = ${(mqttData as any)[key]}`);
+            }
+          });
+        });
+      } else {
+        console.log('📡 ❌ Nessun dato MQTT ricevuto');
+      }
+      console.log('📡 === FINE ANALISI MQTT ===');
+
       const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
 
       this.veicleList.set(updatedVeicles);
@@ -521,6 +535,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     });
   }
+  //FINE COPILOT DA CANCELLARE
 
   private mergeVeiclesWithMqttData(
     dbVeicles: Veicles[],
@@ -757,12 +772,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  public refreshVeicles(): void {
-    console.log("Aggiornamento manuale richiesto dall'utente");
-    this.loadVeicles();
-    this.startAutoUpdate();
-  }
-
   /**
    * Aggiorna le posizioni dei veicoli con i dati MQTT più recenti
    * Cerca solo nei servizi MQTT (localStorage commentato)
@@ -942,5 +951,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       // Controllo esatto per manutenzione
       return status === 'maintenance' || status === 'manutenzione';
     }).length;
+
   }
 }
