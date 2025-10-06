@@ -765,7 +765,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Aggiorna le posizioni dei veicoli con i dati MQTT più recenti
-   * Cerca nei servizi MQTT e nel localStorage per ogni veicolo
+   * Cerca solo nei servizi MQTT (localStorage commentato)
    */
   public refreshAllVehiclesWithMqtt(): void {
     console.log('Inizio aggiornamento di tutti i veicoli con dati MQTT');
@@ -775,16 +775,16 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
 
     // Itera attraverso tutti i veicoli e cerca aggiornamenti MQTT
     const updatedVehicles = currentVehicles.map((vehicle) => {
-      // 1. Prima prova a cercare nel signal del servizio MQTT
+      // Prende i dati solo dal servizio MQTT
       const mqttPosition = this.getMqttPositionFromService(vehicle.id);
 
-      // 2. Se non trovato, prova nel localStorage
-      const localStoragePosition = !mqttPosition
-        ? this.getMqttPositionFromLocalStorage(vehicle.id)
-        : null;
+      // LOCALSTORAGE COMMENTATO - usa solo MQTT Service
+      // const localStoragePosition = !mqttPosition
+      //   ? this.getMqttPositionFromLocalStorage(vehicle.id)
+      //   : null;
 
-      // 3. Usa il dato più recente trovato
-      const latestPosition = mqttPosition || localStoragePosition;
+      // Usa solo i dati MQTT (no localStorage)
+      const latestPosition = mqttPosition; // || localStoragePosition;
 
       if (latestPosition) {
         console.log(`Posizione aggiornata trovata per ${vehicle.licensePlate}:`, latestPosition);
@@ -843,10 +843,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
+   * METODO COMMENTATO - LocalStorage non più utilizzato
    * Cerca la posizione del veicolo nel localStorage
    * @param vehicleId - ID del veicolo da cercare
    * @returns Posizione MQTT se trovata, null altrimenti
    */
+  /*
   private getMqttPositionFromLocalStorage(vehicleId: any): any {
     try {
       // Prova prima con l'ID del veicolo come chiave
@@ -877,6 +879,21 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       return null;
     }
   }
+  */
+
+  /**
+   * Metodo helper per contare veicoli per stati specifici (per debugging)
+   * @param vehicles - Array di veicoli da analizzare
+   * @param statuses - Array di stati da cercare
+   * @returns Conteggio dei veicoli che corrispondono agli stati
+   */
+  private countVehiclesByStatus(vehicles: Veicles[], statuses: string[]): number {
+    return vehicles.filter((veicle) => {
+      const status = veicle.status?.toLowerCase().trim() || '';
+      // Usa controllo esatto invece di includes per evitare false positive
+      return statuses.some((s) => status === s.toLowerCase());
+    }).length;
+  }
 
   /**
    * Conta il numero di veicoli che hanno una posizione valida
@@ -898,7 +915,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   public getVeiclesOnline(): number {
     return this.veicleList().filter((veicle) => {
       const status = veicle.status?.toLowerCase().trim() || '';
-      return status.includes('online') || status.includes('active');
+      // Controllo esatto per evitare che "inactive" venga riconosciuto come "active"
+      return status === 'online' || status === 'active';
     }).length;
   }
 
@@ -909,7 +927,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   public getVeiclesOffline(): number {
     return this.veicleList().filter((veicle) => {
       const status = veicle.status?.toLowerCase().trim() || '';
-      return status.includes('offline') || status.includes('inactive');
+      // Controllo esatto per stati offline/inattivi
+      return status === 'offline' || status === 'inactive';
     }).length;
   }
 
@@ -920,7 +939,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   public getVeiclesMaintenance(): number {
     return this.veicleList().filter((veicle) => {
       const status = veicle.status?.toLowerCase().trim() || '';
-      return status.includes('Maintenance') || status.includes('maintenance');
+      // Controllo esatto per manutenzione
+      return status === 'maintenance' || status === 'manutenzione';
     }).length;
   }
 }
