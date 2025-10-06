@@ -19,10 +19,8 @@ import { Router } from '@angular/router';
   selector: 'app-veiclemodal',
   imports: [CommonModule],
   template: `
-    <!-- <div class="modal-overlay" (click)="onOverlayClick($event)"> -->
-    <div class="modal-overlay">
-      <!-- <div class="alert-container" (click)="$event.stopPropagation()"> -->
-      <div class="alert-container">
+    <div class="modal-overlay" (click)="onOverlayClick($event)">
+      <div class="alert-container" (click)="$event.stopPropagation()">
         <h1 class="alert-title">{{ titolo }}</h1>
         <p class="alert-text">{{ testo }}</p>
         <div class="modal-body">
@@ -66,9 +64,40 @@ import { Router } from '@angular/router';
     </div>
   `,
   styles: `
+/* Animazioni per l'apertura e chiusura */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
 
-tr{
-font-size:20px;
+@keyframes modalOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+tr {
+  font-size: 20px;
 }
 
 .detail-row {
@@ -88,117 +117,205 @@ font-size:20px;
   margin-top: 4px;
 }
 
-
+/* Overlay che copre tutto lo schermo con sfondo semi-trasparente */
 .modal-overlay {
-    position: absolute;
-    bottom: 0; left: 0; width:fit-content; height: auto;
-    min-width:1000px;
-    z-index: 99;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 1rem;
+  animation: overlayIn 0.3s ease-out;
 }
 
+/* Container principale della modale - centrato e responsivo */
 .alert-container {
-    background: var(--card-bg, #fff);
-    color: var(--text, #0f172a);
-    padding: 1.5rem;
-    border-radius: 12px;
-    z-index: 100;
-    width: 80%;
-    max-width: 1000px;
-    font-family: var(--font-family, Inter, 'Segoe UI', Roboto, Arial, sans-serif);
-    box-sizing: border-box;
+  background: var(--card-bg, #fff);
+  color: var(--text, #0f172a);
+  padding: 2rem;
+  border-radius: 16px;
+  z-index: 1000;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  font-family: var(--font-family, Inter, 'Segoe UI', Roboto, Arial, sans-serif);
+  box-sizing: border-box;
+  overflow-y: auto;
+  
+  /* Ombra elegante */
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 10px 20px -5px rgba(0, 0, 0, 0.1);
+  
+  /* Animazione di entrata */
+  animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animazione di uscita (da applicare via JavaScript se necessario) */
+.alert-container.closing {
+  animation: modalOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .alert-title {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-    color: var(--accent, #2563eb);
-    font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: var(--accent, #2563eb);
+  font-weight: 600;
+  text-align: center;
 }
 
 .alert-text {
-    margin: 0 0 1rem 0;
-    color: var(--muted, #6b7280);
-    font-size: 0.98rem;
+  margin: 0 0 1.5rem 0;
+  color: var(--muted, #6b7280);
+  font-size: 1rem;
+  text-align: center;
 }
 
 .modal-body {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    align-items: flex-start;
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start;
 }
 
-/* left: map, right: details */
+/* Mappa a sinistra */
 .map-container {
-    flex: 1.4;
-    min-height: 280px;
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 0.75rem;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #334155;
-    border: 1px dashed rgba(15,23,42,0.06);
+  flex: 1.4;
+  min-height: 350px;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Dettagli a destra */
 .details-container {
-    flex: 1;
-    min-height: 280px;
-    background: #fff;
-    border-radius: 8px;
-    padding: 0.75rem;
-    box-sizing: border-box;
-    color: #0f172a;
-    border: 1px solid rgba(15,23,42,0.04);
-    overflow: auto;
+  flex: 1;
+  min-height: 350px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  overflow: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* actions */
+/* Azioni */
 .actions {
-    text-align: right;
+  text-align: center;
+  margin-top: 1rem;
 }
 
-/* buttons */
+/* Pulsanti */
 .blackbtn {
-    background: var(--text, #0f172a);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.95rem;
-    cursor: pointer;
+  background: var(--text, #0f172a);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.blackbtn:hover {
+  background: #374151;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .refresh-btn {
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    margin-top: 1rem;
-    transition: background-color 0.2s;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .refresh-btn:hover {
-    background: #059669;
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* responsive */
-@media (max-width: 700px) {
-    .modal-body {
-        flex-direction: column;
-    }
-    .map-container, .details-container {
-        min-height: 180px;
-    }
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .alert-container {
+    max-width: 95%;
+    padding: 1.5rem;
+  }
+  
+  .modal-body {
+    gap: 1rem;
+  }
+  
+  .map-container, .details-container {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .alert-container {
+    padding: 1rem;
+    max-height: 95vh;
+  }
+  
+  .alert-title {
+    font-size: 1.25rem;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .map-container, .details-container {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .alert-container {
+    padding: 0.75rem;
+  }
+  
+  .alert-title {
+    font-size: 1.125rem;
+  }
+  
+  .map-container, .details-container {
+    min-height: 200px;
+    padding: 0.75rem;
+  }
+  
+  .blackbtn, .refresh-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
 }
     `,
 })
@@ -294,9 +411,9 @@ export class VeicleModal implements OnInit, AfterViewInit {
   }
 
   //Chiusura della modale cliccando fuori dagli spazi
-  // onOverlayClick(event: MouseEvent): void {
-  //   // this.hideModal.emit(false);
-  // }
+  onOverlayClick(event: MouseEvent): void {
+    this.close();
+  }
   //formattazione della data
   formatDate(data: string | Date): string {
     if (!data) return '';

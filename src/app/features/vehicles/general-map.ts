@@ -13,6 +13,7 @@ import { VeiclePosition } from '../../models/veicle-position';
 import { Veicles } from '../../models/veicles';
 import { VeicleService } from '../../services/veicle-service';
 import { MyMqttService } from '../../services/mymqtt-service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-general-map',
@@ -26,6 +27,9 @@ import { MyMqttService } from '../../services/mymqtt-service';
           <div class="control-buttons">
             <button class="mqtt-refresh-btn primary" (click)="refreshAllVehiclesWithMqtt()">
               Aggiorna Posizioni
+            </button>
+            <button class="mqtt-refresh-btn" (click)="backToDashboard()">
+              Torna alla Dashboard
             </button>
           </div>
         </div>
@@ -401,7 +405,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
 export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
-
+router = inject(Router)
   // Input per ricevere il veicolo selezionato dal componente padre
   selectedVeicle = input<Veicles>();
 
@@ -951,6 +955,9 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       // Controllo esatto per manutenzione
       return status === 'maintenance' || status === 'manutenzione';
     }).length;
+  }
 
+  backToDashboard(){
+    this.router.navigate(['/dashboard'])
   }
 }
