@@ -13,10 +13,11 @@ import { Veicles } from '../../../models/veicles';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import { MyMqttService } from '../../../services/mymqtt-service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-veiclemodal',
-  imports: [CommonModule],
+  imports: [CommonModule,],
   template: `
     <!-- <div class="modal-overlay" (click)="onOverlayClick($event)"> -->
     <div class="modal-overlay">
@@ -58,7 +59,7 @@ import { MyMqttService } from '../../../services/mymqtt-service';
           <!--</div>-->
         </div>
         <div class="actions">
-          <button class="blackbtn">Chiudi</button>
+          <button class="blackbtn" (click)="close()">Chiudi</button>
         </div>
       </div>
       <!--</div>-->
@@ -208,6 +209,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
   @Input() testo: string = 'testo da mostrare ';
   selectedVeicle = input<Veicles>();
   hideModal = output<boolean>();
+  router = inject(Router);
 
   // Servizi necessari
   private mqttService = inject(MyMqttService);
@@ -452,5 +454,37 @@ export class VeicleModal implements OnInit, AfterViewInit {
     });
     this.markers = [];
     console.log(' Marker rimossi dalla mappa');
+  }
+
+  close(): void {
+    const hide: any = this.hideModal;
+
+    // Try common emit/set/update patterns for outputs/signals
+    if (hide) {
+      if (typeof hide.emit === 'function') {
+        hide.emit(false);
+        return;
+      }
+      if (typeof hide === 'function') {
+        hide(false);
+        return;
+      }
+      if (typeof hide.set === 'function') {
+        hide.set(false);
+        return;
+      }
+      if (typeof hide.update === 'function') {
+        hide.update(() => false);
+        return;
+      }
+    }
+
+    // Fallback: go back in history (avoids navigating to home)
+    if (typeof history !== 'undefined' && typeof history.back === 'function') {
+      history.back();
+      return;
+    }
+
+    console.warn('Impossibile chiudere la modale: output hideModal non disponibile.');
   }
 }

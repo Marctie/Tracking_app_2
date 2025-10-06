@@ -429,19 +429,19 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   // Mappa dei colori per gli stati dei veicoli
   private statusColorMap: { [key: string]: string } = {
     active: '#28a745', // Verde per veicoli attivi
-    inactive:'#dc3545', //Rosso per veicoli inattivi 
+    inactive: '#dc3545', //Rosso per veicoli inattivi
     offline: '#dc3545', // Rosso per veicoli offline
     maintenance: '#ffc107', // Giallo per manutenzione
     default: '#6c757d', // Grigio per stati sconosciuti
   };
-  constructor(){
+  constructor() {
     effect(() => {
       const selected = this.selectedVeicle();
       if (this.map && selected) {
         console.log(
           `Veicolo selezionato cambiato: ${selected.licensePlate} (Stato: ${selected.status})`
         );
-        this.addVeicleMarkers(); // Ricarica i marker per il nuovo veicolo selezionato
+        this.addVeicleMarkers(true); // Preserva la vista quando cambia il veicolo selezionato
       }
     });
   }
@@ -452,8 +452,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     // Avvia l'aggiornamento automatico ogni 5 secondi
     this.startAutoUpdate();
     // Effect per reagire ai cambiamenti del veicolo selezionato
-
-    
   }
 
   ngAfterViewInit(): void {
@@ -476,7 +474,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
 
     this.autoUpdateInterval = setInterval(() => {
       console.log('Aggiornamento automatico posizioni veicoli...');
-      this.loadVeicles();
+      this.loadVeicles(true); // Preserva la vista della mappa durante l'auto-update
     }, this.UPDATE_INTERVAL);
   }
 
@@ -504,7 +502,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private loadVeicles(): void {
+  private loadVeicles(preserveMapView: boolean = false): void {
     console.log('Caricamento veicoli');
 
     this.veicleService.getListVeicle().subscribe((response) => {
@@ -519,7 +517,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       console.log('Lista veicoli aggiornata con dati MQTT:', updatedVeicles.length);
 
       if (this.map) {
-        this.addVeicleMarkers();
+        this.addVeicleMarkers(preserveMapView);
       }
     });
   }
@@ -568,7 +566,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private addVeicleMarkers(): void {
+  private addVeicleMarkers(preserveCurrentView: boolean = false): void {
     this.clearMarkers();
 
     // Usa selectedVeicle se disponibile per mostrare un singolo veicolo
@@ -582,9 +580,11 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       ) {
         this.addVeicleMarker(selectedVeicle);
 
-        // Centra la mappa sul veicolo selezionato
-        const position = selectedVeicle.lastPosition;
-        this.map.setView([position.latitude, position.longitude], 15);
+        // Centra la mappa sul veicolo selezionato solo se non si deve preservare la vista
+        if (!preserveCurrentView) {
+          const position = selectedVeicle.lastPosition;
+          this.map.setView([position.latitude, position.longitude], 15);
+        }
 
         console.log(
           `Mostrato veicolo selezionato: ${selectedVeicle.licensePlate} (Stato: ${selectedVeicle.status})`
@@ -603,8 +603,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Aggiusta la vista per includere tutti i marker
-    if (this.markers.length > 0) {
+    // Aggiusta la vista per includere tutti i marker solo se non si deve preservare la vista corrente
+    if (this.markers.length > 0 && !preserveCurrentView) {
       const group = new L.FeatureGroup(this.markers);
       this.map.fitBounds(group.getBounds().pad(0.1));
     }
@@ -815,8 +815,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       `Aggiornamento completato. ${updatedCount} veicoli aggiornati su ${currentVehicles.length}`
     );
 
-    // Aggiorna i marker sulla mappa
-    this.addVeicleMarkers();
+    // Aggiorna i marker sulla mappa preservando la vista corrente
+    this.addVeicleMarkers(true);
   }
 
   /**
