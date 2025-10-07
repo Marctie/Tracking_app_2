@@ -471,9 +471,24 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const selected = this.selectedVeicle();
       if (this.map && selected) {
         console.log(
-          `Veicolo selezionato cambiato: ${selected.licensePlate} (Stato: ${selected.status})`
+          '[GENERAL-MAP] Veicolo selezionato cambiato:',
+          selected.licensePlate,
+          '- Stato:',
+          selected.status
         );
         this.addVeicleMarkers(true); // Preserva la vista quando cambia il veicolo selezionato
+      }
+    });
+
+    // Effect per aggiornamenti MQTT in tempo reale - PRESERVA SEMPRE la vista della mappa
+    effect(() => {
+      const mqttPositions = this.mqttService.positionVeiclesList();
+      if (mqttPositions.length > 0 && this.veicleList().length > 0 && this.map) {
+        console.log(
+          '[GENERAL-MAP] Rilevato aggiornamento MQTT - aggiornamento marker preservando vista corrente'
+        );
+        // Aggiorna solo i marker senza modificare zoom e posizione della mappa
+        this.updateMarkersWithMqttData();
       }
     });
   }
@@ -502,17 +517,17 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private startAutoUpdate(): void {
     this.stopAutoUpdate();
 
-    console.log('Avvio aggiornamento automatico ogni 5 secondi');
+    console.log('[GENERAL-MAP] Avvio aggiornamento automatico ogni 5 secondi');
 
     this.autoUpdateInterval = setInterval(() => {
-      console.log('Aggiornamento automatico posizioni veicoli...');
+      console.log('[GENERAL-MAP] Esecuzione aggiornamento automatico posizioni veicoli');
       this.loadVeicles(true); // Preserva la vista della mappa durante l'auto-update
     }, this.UPDATE_INTERVAL);
   }
 
   private stopAutoUpdate(): void {
     if (this.autoUpdateInterval) {
-      console.log('Fermo aggiornamento automatico');
+      console.log('[GENERAL-MAP] Aggiornamento automatico interrotto');
       clearInterval(this.autoUpdateInterval);
       this.autoUpdateInterval = null;
     }
@@ -535,12 +550,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadVeicles(preserveMapView: boolean = false): void {
-    console.log('🗺️ Caricamento TUTTI i veicoli per mappa generale');
+    console.log('[GENERAL-MAP] Caricamento di tutti i veicoli per la visualizzazione generale');
 
     // Per la mappa generale, richiediamo TUTTI i veicoli con pageSize molto alto
     this.veicleService.getListVeicle(1, 1000).subscribe((response) => {
       console.log(
-        '✅ Veicoli caricati:',
+        '[GENERAL-MAP] Veicoli caricati dal server:',
         response.items.length,
         'di',
         response.totalCount,
@@ -548,45 +563,42 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       );
 
       const mqttPositions = this.mqttService.positionVeiclesList();
-      console.log('Posizioni MQTT disponibili:', mqttPositions.length);
+      console.log('[GENERAL-MAP] Posizioni MQTT disponibili nel servizio:', mqttPositions.length);
 
-      // COPILOT DA CANCELLARE
-      console.log('📡 === ANALISI COMPLETA DATI MQTT ===');
+      // Analisi dati MQTT per debugging
       if (mqttPositions.length > 0) {
+        console.log('[GENERAL-MAP] Analisi dati MQTT ricevuti:');
         mqttPositions.forEach((mqttData, index) => {
-          console.log(`📍 MQTT ${index + 1}:`, {
-            vehicleId: mqttData.vehicleId,
-            tutte_le_proprietà: Object.keys(mqttData),
-            dati_completi: mqttData,
-          });
-
-          // Cerca qualsiasi proprietà che potrebbe contenere lo stato
-          Object.keys(mqttData).forEach((key) => {
-            if (
-              key.toLowerCase().includes('status') ||
-              key.toLowerCase().includes('state') ||
-              key.toLowerCase().includes('stato')
-            ) {
-              console.log(`🔍 Possibile campo stato trovato: ${key} = ${(mqttData as any)[key]}`);
-            }
-          });
+          console.log(
+            '[GENERAL-MAP] Posizione MQTT',
+            index + 1,
+            '- Veicolo ID:',
+            mqttData.vehicleId,
+            '- Proprieta disponibili:',
+            Object.keys(mqttData).length
+          );
         });
       } else {
-        console.log('📡 ❌ Nessun dato MQTT ricevuto');
+        console.log('[GENERAL-MAP] Nessun dato MQTT disponibile al momento');
       }
-      console.log('📡 === FINE ANALISI MQTT ===');
 
       const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
 
       this.veicleList.set(updatedVeicles);
-      console.log('Lista veicoli aggiornata con dati MQTT:', updatedVeicles.length);
+      console.log(
+        '[GENERAL-MAP] Lista veicoli aggiornata con integrazione MQTT - Totale veicoli:',
+        updatedVeicles.length
+      );
 
       if (this.map) {
+        console.log(
+          '[GENERAL-MAP] Aggiornamento marker -',
+          preserveMapView ? 'Vista PRESERVATA' : 'Vista CENTRATA'
+        );
         this.addVeicleMarkers(preserveMapView);
       }
     });
   }
-  //FINE COPILOT DA CANCELLARE
 
   private mergeVeiclesWithMqttData(
     dbVeicles: Veicles[],
@@ -602,7 +614,10 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         const mqttTimestamp = new Date(mqttPosition.timestamp);
 
         if (mqttTimestamp > dbTimestamp) {
-          console.log(`Aggiornamento posizione per ${veicle.licensePlate} con dati MQTT`);
+          console.log(
+            '[GENERAL-MAP] Posizione aggiornata con dati MQTT per veicolo:',
+            veicle.licensePlate
+          );
 
           return {
             ...veicle,
@@ -653,10 +668,15 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         }
 
         console.log(
-          `Mostrato veicolo selezionato: ${selectedVeicle.licensePlate} (Stato: ${selectedVeicle.status})`
+          '[GENERAL-MAP] Visualizzazione veicolo selezionato:',
+          selectedVeicle.licensePlate,
+          '- Stato:',
+          selectedVeicle.status
         );
       } else {
-        console.warn('Il veicolo selezionato non ha una posizione valida');
+        console.warn(
+          '[GENERAL-MAP] Avviso: Il veicolo selezionato non ha coordinate di posizione valide'
+        );
       }
 
       return;
@@ -675,7 +695,53 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       this.map.fitBounds(group.getBounds().pad(0.1));
     }
 
-    console.log(`Aggiunti ${this.markers.length} marker sulla mappa`);
+    console.log('[GENERAL-MAP] Marker aggiunti alla mappa:', this.markers.length);
+  }
+
+  /**
+   * Aggiorna solo i marker sulla mappa con i dati MQTT senza modificare zoom e posizione
+   * Questo metodo preserva SEMPRE la vista corrente della mappa
+   */
+  private updateMarkersWithMqttData(): void {
+    const mqttPositions = this.mqttService.positionVeiclesList();
+    const currentVehicles = this.veicleList();
+
+    console.log('[GENERAL-MAP] Aggiornamento marker con dati MQTT - Preservando vista corrente');
+
+    // Crea una versione temporanea dei veicoli con i dati MQTT per i marker
+    const vehiclesWithMqtt = this.mergeVeiclesWithMqttData(currentVehicles, mqttPositions);
+
+    // Pulisce i marker esistenti
+    this.clearMarkers();
+
+    // Aggiungi marker per il veicolo selezionato o tutti i veicoli
+    if (this.selectedVeicle()) {
+      const selectedVeicle = this.selectedVeicle()!;
+      const updatedSelected = vehiclesWithMqtt.find((v) => v.id === selectedVeicle.id);
+
+      if (
+        updatedSelected &&
+        updatedSelected.lastPosition &&
+        updatedSelected.lastPosition.latitude &&
+        updatedSelected.lastPosition.longitude
+      ) {
+        this.addVeicleMarker(updatedSelected);
+        console.log(
+          '[GENERAL-MAP] Marker aggiornato per veicolo selezionato:',
+          updatedSelected.licensePlate
+        );
+      }
+    } else {
+      // Aggiungi marker per tutti i veicoli con posizione
+      vehiclesWithMqtt.forEach((veicle) => {
+        if (veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude) {
+          this.addVeicleMarker(veicle);
+        }
+      });
+      console.log('[GENERAL-MAP] Marker aggiornati per tutti i veicoli:', this.markers.length);
+    }
+
+    // IMPORTANTE: NON chiamare setView() o fitBounds() per preservare la vista corrente
   }
 
   private addVeicleMarker(veicle: Veicles): void {
@@ -801,7 +867,11 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Ritorna il colore di default se nessuna corrispondenza
-    console.log(`Stato sconosciuto: ${status}, uso colore di default`);
+    console.log(
+      '[GENERAL-MAP] Stato veicolo non riconosciuto:',
+      status,
+      '- Applicazione colore di default'
+    );
     return this.statusColorMap['default'];
   }
 
@@ -828,7 +898,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    * Cerca solo nei servizi MQTT (localStorage commentato)
    */
   public refreshAllVehiclesWithMqtt(): void {
-    console.log('Inizio aggiornamento di tutti i veicoli con dati MQTT');
+    console.log('[GENERAL-MAP] Inizio processo di aggiornamento veicoli con dati MQTT');
 
     const currentVehicles = this.veicleList();
     let updatedCount = 0;
@@ -847,7 +917,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const latestPosition = mqttPosition; // || localStoragePosition;
 
       if (latestPosition) {
-        console.log(`Posizione aggiornata trovata per ${vehicle.licensePlate}:`, latestPosition);
+        console.log('[GENERAL-MAP] Posizione MQTT aggiornata per veicolo:', vehicle.licensePlate);
         updatedCount++;
 
         // Crea il veicolo aggiornato con la nuova posizione
@@ -872,7 +942,11 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     this.veicleList.set(updatedVehicles);
 
     console.log(
-      `Aggiornamento completato. ${updatedCount} veicoli aggiornati su ${currentVehicles.length}`
+      '[GENERAL-MAP] Aggiornamento MQTT completato -',
+      updatedCount,
+      'veicoli aggiornati su',
+      currentVehicles.length,
+      'totali'
     );
 
     // Aggiorna i marker sulla mappa preservando la vista corrente
@@ -890,14 +964,17 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
 
       if (position) {
-        console.log(`Posizione trovata nel service per veicolo ID ${vehicleId}`);
+        console.log(
+          '[GENERAL-MAP] Posizione recuperata dal servizio MQTT per veicolo ID:',
+          vehicleId
+        );
         return position;
       }
 
-      console.log(`Nessuna posizione per veicolo ID ${vehicleId}`);
+      console.log('[GENERAL-MAP] Nessuna posizione MQTT disponibile per veicolo ID:', vehicleId);
       return null;
     } catch (error) {
-      console.error('Errore durante la ricerca ', error);
+      console.error('[GENERAL-MAP] Errore durante la ricerca posizione MQTT:', error);
       return null;
     }
   }

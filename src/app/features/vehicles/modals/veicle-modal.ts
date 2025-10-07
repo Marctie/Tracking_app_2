@@ -335,8 +335,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
   private markers: L.Marker[] = [];
 
   ngOnInit(): void {
-    // Il modal riceve il veicolo selezionato dal dashboard
-    console.log('Modal inizializzato con veicolo:', this.selectedVeicle()?.licensePlate);
+    console.log('[MODAL] Inizializzazione modal per veicolo:', this.selectedVeicle()?.licensePlate);
   }
 
   ngAfterViewInit(): void {
@@ -362,7 +361,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
     });
-    console.log('Icone Leaflet configurate - nessun errore 404 per marker-shadow.png');
+    console.log('[MODAL] Configurazione icone Leaflet completata');
   }
 
   initMap(): void {
@@ -381,24 +380,30 @@ export class VeicleModal implements OnInit, AfterViewInit {
 
   // Metodo elementare per mostrare il veicolo selezionato
   showSelectedVehicleOnMap(): void {
-    console.log('Veicolo selezionato ricevuto:', this.selectedVeicle);
+    console.log('[MODAL] Visualizzazione veicolo selezionato sulla mappa');
     // Controllo del veicolo selezionato
     if (!this.selectedVeicle) {
-      console.log('ERRORE: Nessun veicolo selezionato!');
+      console.log('[MODAL] Errore: Nessun veicolo selezionato');
       return;
     }
     // Controllo se il veicolo ha una posizione
     if (!this.selectedVeicle()?.lastPosition) {
-      console.log('ERRORE: Il veicolo non ha una posizione!');
+      console.log('[MODAL] Errore: Il veicolo non ha posizione disponibile');
       return;
     }
     const lat = this.selectedVeicle()?.lastPosition.latitude;
     const lng = this.selectedVeicle()?.lastPosition.longitude;
     if (!lat || !lng) {
-      console.log('ERRORE: Coordinate non valide!', lat, lng);
+      console.log('[MODAL] Errore: Coordinate non valide - Lat:', lat, 'Lng:', lng);
       return;
     }
-    console.log('Creo marker per:', this.selectedVeicle()?.licensePlate, 'a:', lat, lng);
+    console.log(
+      '[MODAL] Creazione marker per veicolo:',
+      this.selectedVeicle()?.licensePlate,
+      'alle coordinate:',
+      lat,
+      lng
+    );
     // Crea il marker del veicolo
     const marker = L.marker([lat, lng]).addTo(this.map);
 
@@ -431,10 +436,13 @@ export class VeicleModal implements OnInit, AfterViewInit {
    * Cerca prima nel signal del servizio MQTT, poi nel localStorage come fallback
    */
   public refreshVeicles(): void {
-    console.log('Ricerca dati MQTT per veicolo:', this.selectedVeicle()?.licensePlate);
+    console.log(
+      '[MODAL] Richiesta aggiornamento posizione MQTT per veicolo:',
+      this.selectedVeicle()?.licensePlate
+    );
 
     if (!this.selectedVeicle()) {
-      console.log('Nessun veicolo selezionato');
+      console.log("[MODAL] Errore: Nessun veicolo selezionato per l'aggiornamento");
       return;
     }
     const vehicleId = this.selectedVeicle()?.id;
@@ -451,7 +459,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
     const latestPosition = mqttPosition || localStoragePosition;
 
     if (latestPosition) {
-      console.log('Trovata posizione MQTT aggiornata:', latestPosition);
+      console.log('[MODAL] Posizione MQTT aggiornata trovata per veicolo ID:', vehicleId);
 
       // Aggiorna anche il modello usato dal template: selectedVeicle.signal (compatibile con input() / signal APIs)
       const current = this.selectedVeicle?.();
@@ -481,7 +489,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
 
       this.updateMapWithMqttData(latestPosition);
     } else {
-      console.log('Nessun dato MQTT trovato, uso posizione dal database');
+      console.log('[MODAL] Nessun dato MQTT disponibile - utilizzo posizione da database');
       this.showSelectedVehicleOnMap();
     }
   }
@@ -496,11 +504,11 @@ export class VeicleModal implements OnInit, AfterViewInit {
     const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
 
     if (position) {
-      console.log('Posizione trovata nel signal MQTT service');
+      console.log('[MODAL] Posizione trovata nel servizio MQTT');
       return position;
     }
 
-    console.log(' Nessuna posizione nel signal, provo localStorage...');
+    console.log('[MODAL] Nessuna posizione nel servizio MQTT - controllo localStorage');
     return null;
   }
 
@@ -514,14 +522,14 @@ export class VeicleModal implements OnInit, AfterViewInit {
       const storedPosition = localStorage.getItem(vehicleId.toString());
       if (storedPosition) {
         const position = JSON.parse(storedPosition);
-        console.log('Posizione trovata in localStorage');
+        console.log('[MODAL] Posizione recuperata da localStorage per veicolo ID:', vehicleId);
         return position;
       }
     } catch (error) {
-      console.error('Errore leggendo localStorage:', error);
+      console.error('[MODAL] Errore durante la lettura del localStorage:', error);
     }
 
-    console.log('Nessuna posizione in localStorage');
+    console.log('[MODAL] Nessuna posizione disponibile in localStorage');
     return null;
   }
 
@@ -536,7 +544,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
     const lat = mqttPosition.latitude;
     const lng = mqttPosition.longitude;
 
-    console.log('Aggiornamento mappa con posizione MQTT:', lat, lng);
+    console.log('[MODAL] Aggiornamento mappa con dati MQTT - Lat:', lat, 'Lng:', lng);
 
     // Crea nuovo marker con posizione MQTT
     const marker = L.marker([lat, lng]).addTo(this.map);
@@ -556,7 +564,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
     // Salva il marker
     this.markers.push(marker);
 
-    console.log(' Mappa aggiornata con successo');
+    console.log('[MODAL] Aggiornamento mappa completato con successo');
   }
   /**
    * Rimuove tutti i marker dalla mappa
@@ -567,7 +575,7 @@ export class VeicleModal implements OnInit, AfterViewInit {
       this.map.removeLayer(marker);
     });
     this.markers = [];
-    console.log(' Marker rimossi dalla mappa');
+    console.log('[MODAL] Marker precedenti rimossi dalla mappa');
   }
 
   close(): void {
@@ -599,6 +607,8 @@ export class VeicleModal implements OnInit, AfterViewInit {
       return;
     }
 
-    console.warn('Impossibile chiudere la modale: output hideModal non disponibile.');
+    console.warn(
+      '[MODAL] Errore: Impossibile chiudere la modale - output hideModal non disponibile'
+    );
   }
 }

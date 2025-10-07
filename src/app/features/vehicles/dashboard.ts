@@ -410,10 +410,10 @@ export class Dashboard implements OnInit {
     let trimText = this.value().textFilter ? this.value().textFilter : '';
     return lista.filter((veicolo) => {
       if (this.value().valueOption === 'licensePlate') {
-        console.log('filtro per targa');
+        console.log('[DASHBOARD] Applicazione filtro per targa');
         return veicolo.licensePlate.toUpperCase().includes(trimText);
       } else {
-        console.log('filtro per brand');
+        console.log('[DASHBOARD] Applicazione filtro per modello');
         return veicolo.model.toUpperCase().includes(trimText);
       }
     });
@@ -423,17 +423,20 @@ export class Dashboard implements OnInit {
   constructor() {
     effect(() => {
       this.userLogin.login.name;
-      // console.log('dati di effect da dashboard', this.mqttService.positionVeiclesList());
-      console.log(this.filterList());
+      console.log(
+        '[DASHBOARD] Lista veicoli filtrata aggiornata:',
+        this.filterList().length,
+        'elementi'
+      );
       // Nota: Il filtraggio ora deve essere gestito lato server
       // Per ora manteniamo solo il logging, il filtro sarà implementato in futuro
     });
   }
 
   ngOnInit() {
+    console.log('[DASHBOARD] Inizializzazione componente dashboard');
     this.loadVeicles();
-    this.loadUserName(); // Carica il nome utente dal localStorage se necessario
-    console.log('Dashboard inizializzata con', this.veicleList().length, 'veicoli');
+    this.loadUserName();
   }
 
   /**
@@ -446,7 +449,7 @@ export class Dashboard implements OnInit {
       if (storedFirstName) {
         // Aggiorna il signal del servizio con il nome salvato
         this.userLogin.firstName.set(storedFirstName);
-        console.log('Nome utente recuperato dal localStorage:', storedFirstName);
+        console.log('[DASHBOARD] Nome utente recuperato dal localStorage:', storedFirstName);
       }
     }
   }
@@ -477,9 +480,14 @@ export class Dashboard implements OnInit {
       this.currentPage.set(response.page);
 
       console.log(
-        `Caricati ${response.items.length} veicoli per la pagina ${response.page}/${response.totalPages}`
+        '[DASHBOARD] Caricamento veicoli completato - Pagina:',
+        response.page,
+        'di',
+        response.totalPages,
+        '- Veicoli caricati:',
+        response.items.length
       );
-      console.log(`Totale veicoli sul server: ${response.totalCount}`);
+      console.log('[DASHBOARD] Totale veicoli disponibili sul server:', response.totalCount);
     });
   }
 
@@ -542,17 +550,22 @@ export class Dashboard implements OnInit {
     this.showModal.set(true);
     this.titoloAlert = 'Dettaglio Veicolo';
     this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
-    console.log('Apertura modal per veicolo:', veicle.licensePlate);
+    console.log('[DASHBOARD] Apertura modal dettagli veicolo:', veicle.licensePlate);
     let variab = localStorage.getItem(veicle.id.toString());
     this.messageStorage = variab ? JSON.parse(variab) : {};
-    console.log('entro nella funzione gotoMap con questi dati  ->', this.messageStorage);
+    console.log(
+      '[DASHBOARD] Dati MQTT recuperati dal localStorage per veicolo ID',
+      veicle.id,
+      ':',
+      this.messageStorage
+    );
   }
 
   // Metodi per la paginazione lato server
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages()) {
-      console.log(`Caricamento pagina ${page}...`);
-      this.loadVeicles(page); // Carica direttamente dal server
+      console.log('[DASHBOARD] Navigazione alla pagina:', page);
+      this.loadVeicles(page);
     }
   }
 
@@ -589,10 +602,9 @@ export class Dashboard implements OnInit {
   onFilterBy(value: IFilter) {
     this.value.set(value);
     if (!value.textFilter || value.textFilter.trim() === '') {
-      // Ricarica i dati originari dalla prima pagina se il filtro è vuoto
-      console.log('filtro vuoto - ricaricamento prima pagina');
+      console.log('[DASHBOARD] Filtro svuotato - ricaricamento prima pagina');
       setTimeout(() => {
-        this.loadVeicles(1); // Ricarica dalla prima pagina
+        this.loadVeicles(1);
       }, 500);
     }
     // Nota: Il filtro con testo dovrà essere implementato lato server in futuro
@@ -602,7 +614,7 @@ export class Dashboard implements OnInit {
   onClickOutsideModal() {
     if (this.showModal()) {
       this.showModal.set(false);
+      console.log('[DASHBOARD] Modal chiuso tramite click esterno');
     }
-    console.log(this.showModal(), 'valore');
   }
 }
