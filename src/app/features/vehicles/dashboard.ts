@@ -22,6 +22,7 @@ import { IFilter, SelectFilter } from './select-filter';
   selector: 'app-dashboard',
   imports: [CommonModule, VeicleModal, SelectFilter],
   template: `
+    <!-- test -->
     <div class="dashboard-container" (click)="onClickOutsideModal()">
       <h1>Benvenuto sig.{{ userLogin.firstName() || getStoredUserName() }}</h1>
       <div class="marco">
