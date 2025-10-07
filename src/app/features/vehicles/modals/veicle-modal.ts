@@ -28,7 +28,6 @@ import { Router } from '@angular/router';
             <div id="map" #leafletMap></div>
           </div>
           <div class="details-container" style="text-align: left;">
-            <p style="text-align: center;">Dettagli del veicolo</p>
             @if (selectedVeicle()){
             <div class="detail-row">
               <strong>Targa:</strong> {{ selectedVeicle()?.licensePlate }}
