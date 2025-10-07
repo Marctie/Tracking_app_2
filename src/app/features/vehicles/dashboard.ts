@@ -22,8 +22,9 @@ import { IFilter, SelectFilter } from './select-filter';
   selector: 'app-dashboard',
   imports: [CommonModule, VeicleModal, SelectFilter],
   template: `
+    <!-- test -->
     <div class="dashboard-container" (click)="onClickOutsideModal()">
-      <h1>Benvenuto sig.{{ userLogin.firstName() }}</h1>
+      <h1>Benvenuto sig.{{ userLogin.firstName() || getStoredUserName() }}</h1>
       <div class="marco">
         <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       </div>
@@ -431,7 +432,31 @@ export class Dashboard implements OnInit {
 
   ngOnInit() {
     this.loadVeicles();
+    this.loadUserName(); // Carica il nome utente dal localStorage se necessario
     console.log('Dashboard inizializzata con', this.veicleList().length, 'veicoli');
+  }
+
+  /**
+   * Carica il nome utente dal localStorage se non è presente nel signal
+   */
+  private loadUserName(): void {
+    // Se il signal firstName è vuoto, prova a recuperare dal localStorage
+    if (!this.userLogin.firstName()) {
+      const storedFirstName = localStorage.getItem('userFirstName');
+      if (storedFirstName) {
+        // Aggiorna il signal del servizio con il nome salvato
+        this.userLogin.firstName.set(storedFirstName);
+        console.log('Nome utente recuperato dal localStorage:', storedFirstName);
+      }
+    }
+  }
+
+  /**
+   * Metodo fallback per ottenere il nome utente dal localStorage
+   * @returns Nome utente dal localStorage o stringa vuota
+   */
+  getStoredUserName(): string {
+    return localStorage.getItem('userFirstName') || '';
   }
 
   /**

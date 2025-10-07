@@ -79,12 +79,12 @@ import { Router } from '@angular/router';
           </div>
 
           <!-- Veicoli in manutenzione -->
-          <div class="stat-card maintenance-status">
+          <!-- <div class="stat-card maintenance-status">
             <div class="stat-content">
               <span class="stat-label">Manutenzione</span>
               <span class="stat-value">{{ getVeiclesMaintenance() }}</span>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
 
@@ -95,34 +95,40 @@ import { Router } from '@angular/router';
     </div>
   `,
   styles: `
-    /* === STILI PRINCIPALI === */
+    /* === STILI PRINCIPALI - FULLSCREEN === */
     .map-container {
-      margin: 0 auto;
-      padding: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
       font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 123, 255, 0.1);
-      border: 2px solid #007bff;
-      height:40%;
+      background: #f8f9fa;
+      z-index: 1000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* === HEADER DELLA MAPPA === */
+    /* === HEADER DELLA MAPPA - COMPATTO === */
     .map-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding: 15px;
+      padding: 10px 20px;
       background: white;
-      border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-bottom: 2px solid #007bff;
+      flex-shrink: 0;
+      z-index: 1001;
     }
 
     .map-header h2 {
       color: #007bff;
       margin: 0;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
     }
 
@@ -173,41 +179,34 @@ import { Router } from '@angular/router';
       box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
     }
 
-    /* === DESCRIZIONE === */
+    /* === DESCRIZIONE - NASCOSTA SU FULLSCREEN === */
     .description {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      border-left: 4px solid #007bff;
+      display: none; /* Nascosta per massimizzare spazio mappa */
     }
 
-    .description p {
-      margin: 0;
-      color: #495057;
-      line-height: 1.5;
-    }
-
-    /* === SEZIONE STATISTICHE === */
+    /* === SEZIONE STATISTICHE - COMPATTA === */
     .stats-section {
-      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: white;
+      border-bottom: 1px solid #dee2e6;
+      flex-shrink: 0;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
     }
 
     .stat-card {
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 10px 15px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       display: flex;
       align-items: center;
-      gap: 15px;
-      border-left: 4px solid #007bff;
+      gap: 10px;
+      border-left: 3px solid #007bff;
       transition: transform 0.2s ease;
     }
 
@@ -271,13 +270,9 @@ import { Router } from '@angular/router';
       color: #007bff;
     }
 
-    /* === LEGENDA === */
+    /* === LEGENDA - NASCOSTA SU FULLSCREEN === */
     .legend-section {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: none; /* Nascosta per massimizzare spazio mappa */
     }
 
     .legend-section h4 {
@@ -312,34 +307,70 @@ import { Router } from '@angular/router';
     .legend-color.offline { background-color: #dc3545; }
     .legend-color.maintenance { background-color: #ffc107; }
 
-    /* === MAPPA === */
+    /* === MAPPA FULLSCREEN === */
     .map-wrapper {
+      flex: 1;
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .leaflet-map {
-      height: 500px;
+      flex: 1;
       width: 100%;
-      border-radius: 8px;
-      border: 2px solid #dee2e6;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
     }
 
-    /* === RESPONSIVE DESIGN === */
+    /* === RESPONSIVE DESIGN FULLSCREEN === */
     @media (max-width: 768px) {
-      .map-container {
-        margin: 10px;
-        padding: 15px;
+      .map-header {
+        padding: 8px 15px;
       }
 
+      .map-header h2 {
+        font-size: 18px;
+      }
+
+      .stats-section {
+        padding: 8px 15px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+      }
+
+      .stat-card {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+
+      .mqtt-refresh-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .control-buttons {
+        gap: 5px;
+      }
+    }
+
+    @media (max-width: 480px) {
       .map-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 15px;
+        gap: 10px;
+        padding: 8px 10px;
+      }
+
+      .map-header h2 {
+        font-size: 16px;
       }
 
       .header-controls {
@@ -354,50 +385,59 @@ import { Router } from '@angular/router';
       .mqtt-refresh-btn {
         width: 100%;
         justify-content: center;
+        padding: 10px;
+        font-size: 11px;
       }
 
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-      }
-
-      .legend-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .leaflet-map {
-        height: 400px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .map-header h2 {
-        font-size: 20px;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .legend-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .leaflet-map {
-        height: 350px;
+        gap: 6px;
       }
 
       .stat-card {
-        padding: 15px;
+        padding: 6px 8px;
+        gap: 6px;
       }
 
-      .stat-icon {
-        font-size: 20px;
-        width: 35px;
-        height: 35px;
+      .stat-content {
+        gap: 2px;
+      }
+
+      .stat-label {
+        font-size: 10px;
       }
 
       .stat-value {
-        font-size: 18px;
+        font-size: 16px;
+      }
+
+      .stats-section {
+        padding: 6px 10px;
+      }
+    }
+
+    /* === EXTRA SMALL DEVICES === */
+    @media (max-width: 320px) {
+      .map-header h2 {
+        font-size: 14px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .stat-card {
+        padding: 5px 6px;
+      }
+
+      .stat-value {
+        font-size: 14px;
+      }
+
+      .mqtt-refresh-btn {
+        padding: 8px;
+        font-size: 10px;
       }
     }
   `,
@@ -405,7 +445,7 @@ import { Router } from '@angular/router';
 export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
-router = inject(Router)
+  router = inject(Router);
   // Input per ricevere il veicolo selezionato dal componente padre
   selectedVeicle = input<Veicles>();
 
@@ -495,10 +535,17 @@ router = inject(Router)
   }
 
   private loadVeicles(preserveMapView: boolean = false): void {
-    console.log('Caricamento veicoli');
+    console.log('🗺️ Caricamento TUTTI i veicoli per mappa generale');
 
-    this.veicleService.getListVeicle().subscribe((response) => {
-      console.log('Veicoli:', response.items.length);
+    // Per la mappa generale, richiediamo TUTTI i veicoli con pageSize molto alto
+    this.veicleService.getListVeicle(1, 1000).subscribe((response) => {
+      console.log(
+        '✅ Veicoli caricati:',
+        response.items.length,
+        'di',
+        response.totalCount,
+        'totali'
+      );
 
       const mqttPositions = this.mqttService.positionVeiclesList();
       console.log('Posizioni MQTT disponibili:', mqttPositions.length);
@@ -957,7 +1004,7 @@ router = inject(Router)
     }).length;
   }
 
-  backToDashboard(){
-    this.router.navigate(['/dashboard'])
+  backToDashboard() {
+    this.router.navigate(['/dashboard']);
   }
 }

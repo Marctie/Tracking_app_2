@@ -22,12 +22,16 @@ export class UserService {
     this.http.post<IAuthResponse>(LOGINURL, user).subscribe({
       next: (response) => {
         this.firstName.set(response.firstName);
+
+        // Salva anche nel localStorage per persistenza
+        localStorage.setItem('userFirstName', response.firstName);
+
         const myToken = response.token;
         const tokenExp = response.expiresAt;
         localStorage.setItem('token', myToken);
         localStorage.setItem('tokenExp', tokenExp.toString());
         this.router.navigate(['/dashboard']);
-        console.log(response,'risposta login');
+        console.log(response, 'risposta login');
         this.isLoggedIn.set(true);
       },
       error: (error) => {
@@ -41,6 +45,14 @@ export class UserService {
     this.http.post(LOGOUTURL, '').subscribe({
       next: (response) => {
         console.log('logout effettuato', response);
+
+        // Pulisce i dati dell'utente dal localStorage
+        localStorage.removeItem('userFirstName');
+        localStorage.removeItem('token');
+        localStorage.removeItem('tokenExp');
+
+        // Resetta i signal
+        this.firstName.set('');
         this.isLoggedIn.set(false);
         this.router.navigate(['/landing-page']);
       },
@@ -55,11 +67,18 @@ export class UserService {
     if (tokenExp) {
       if (tokenExp.getTime() > new Date().getTime()) {
         this.isLoggedIn.set(true);
+
+        // Recupera il nome utente dal localStorage se disponibile
+        const storedFirstName = localStorage.getItem('userFirstName');
+        if (storedFirstName) {
+          this.firstName.set(storedFirstName);
+        }
+
         console.log(
-          'loggato: ',      
-          this.isLoggedIn(),' maggiore: ',
-          tokenExp.getTime()>
-          new Date().getTime()
+          'loggato: ',
+          this.isLoggedIn(),
+          ' maggiore: ',
+          tokenExp.getTime() > new Date().getTime()
         );
       }
     }
