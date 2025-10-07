@@ -79,12 +79,12 @@ import { Router } from '@angular/router';
           </div>
 
           <!-- Veicoli in manutenzione -->
-          <div class="stat-card maintenance-status">
+          <!-- <div class="stat-card maintenance-status">
             <div class="stat-content">
               <span class="stat-label">Manutenzione</span>
               <span class="stat-value">{{ getVeiclesMaintenance() }}</span>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
 
@@ -405,7 +405,7 @@ import { Router } from '@angular/router';
 export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
-router = inject(Router)
+  router = inject(Router);
   // Input per ricevere il veicolo selezionato dal componente padre
   selectedVeicle = input<Veicles>();
 
@@ -495,10 +495,17 @@ router = inject(Router)
   }
 
   private loadVeicles(preserveMapView: boolean = false): void {
-    console.log('Caricamento veicoli');
+    console.log('🗺️ Caricamento TUTTI i veicoli per mappa generale');
 
-    this.veicleService.getListVeicle().subscribe((response) => {
-      console.log('Veicoli:', response.items.length);
+    // Per la mappa generale, richiediamo TUTTI i veicoli con pageSize molto alto
+    this.veicleService.getListVeicle(1, 1000).subscribe((response) => {
+      console.log(
+        '✅ Veicoli caricati:',
+        response.items.length,
+        'di',
+        response.totalCount,
+        'totali'
+      );
 
       const mqttPositions = this.mqttService.positionVeiclesList();
       console.log('Posizioni MQTT disponibili:', mqttPositions.length);
@@ -957,7 +964,7 @@ router = inject(Router)
     }).length;
   }
 
-  backToDashboard(){
-    this.router.navigate(['/dashboard'])
+  backToDashboard() {
+    this.router.navigate(['/dashboard']);
   }
 }
