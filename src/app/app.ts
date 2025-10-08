@@ -48,8 +48,8 @@ export class App implements OnInit {
     }
   }
   logout() {
-    this.userService.logout();
     if (confirm('Sei sicuro di voler effettuare il logout? Annullando rimarrai in sessione')) {
+      this.userService.logout();
       localStorage.removeItem('tokenExp');
     }
   }

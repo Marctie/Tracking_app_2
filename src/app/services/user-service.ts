@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { ILogin } from '../models/login';
 import { IAuthResponse } from '../models/auth-response';
 import { LOGINURL, LOGOUTURL } from '../models/constants';
+import { VeicleService } from './veicle-service';
+import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +18,11 @@ export class UserService {
   isLoggedIn = signal(false);
   router = inject(Router);
   firstName = signal<string>('');
+  veicleService = inject(VeicleService); // Servizio per pre-caricamento
+
+  // Subject per comunicare fine caricamento al componente Login
+  loginCompleted$ = new Subject<boolean>();
+
   constructor(private http: HttpClient) {}
 
   login(user: ILogin) {
@@ -30,13 +37,27 @@ export class UserService {
         const tokenExp = response.expiresAt;
         localStorage.setItem('token', myToken);
         localStorage.setItem('tokenExp', tokenExp.toString());
-        this.router.navigate(['/dashboard']);
+
+        // PRE-CARICAMENTO: Carica la prima pagina in background prima di navigare
+        console.log('[LOGIN] Avvio pre-caricamento prima pagina dashboard...');
+        this.preloadFirstPage().then(() => {
+          // Naviga alla dashboard solo dopo aver pre-caricato i dati
+          this.router.navigate(['/dashboard']);
+          console.log('[LOGIN] Login completato con pre-caricamento!');
+
+          // Notifica il componente che il processo è completato
+          this.loginCompleted$.next(true);
+        });
+
         console.log(response, 'risposta login');
         this.isLoggedIn.set(true);
       },
       error: (error) => {
         alert('credenziali errate riprova');
         console.log(error, 'errore');
+
+        // Notifica il componente anche in caso di errore per nascondere il loader
+        this.loginCompleted$.next(false);
       },
     });
   }
@@ -82,5 +103,37 @@ export class UserService {
         );
       }
     }
+  }
+
+  /**
+   * PRE-CARICAMENTO: Carica la prima pagina dei veicoli durante il login
+   * Questo permette di avere i dati già pronti quando l'utente arriva alla dashboard
+   */
+  private preloadFirstPage(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      console.log('[LOGIN] Pre-caricamento prima pagina veicoli...');
+
+      this.veicleService.getListVeicle(1, 10).subscribe({
+        next: (response) => {
+          // Salva i dati pre-caricati nel localStorage per il dashboard
+          const preloadData = {
+            page: response.page,
+            items: response.items,
+            totalCount: response.totalCount,
+            totalPages: response.totalPages,
+            timestamp: Date.now(),
+          };
+
+          localStorage.setItem('preloadedFirstPage', JSON.stringify(preloadData));
+          console.log(`[LOGIN] Prima pagina pre-caricata: ${response.items.length} veicoli`);
+          resolve();
+        },
+        error: (error) => {
+          console.warn('[LOGIN] Errore pre-caricamento (non bloccante):', error);
+          // Non blocchiamo il login se il pre-caricamento fallisce
+          resolve();
+        },
+      });
+    });
   }
 }

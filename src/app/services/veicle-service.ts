@@ -20,4 +20,11 @@ export class VeicleService {
 
     return this.http.get<IVeicleResponse>(VEICLEURL, { params });
   }
+
+  // Metodo per recuperare tutti i veicoli senza paginazione per la ricerca globale
+  getAllVeicles(): Observable<IVeicleResponse> {
+    const params = new HttpParams().set('page', '1').set('pageSize', '10000'); // Numero molto alto per ottenere tutti i record
+
+    return this.http.get<IVeicleResponse>(VEICLEURL, { params });
+  }
 }

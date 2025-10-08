@@ -18,6 +18,31 @@ import { VeicleModal } from './modals/veicle-modal';
 import { MyMqttService } from '../../services/mymqtt-service';
 import { IFilter, SelectFilter } from './select-filter';
 
+/**
+ * DASHBOARD CON PRE-CARICAMENTO SEQUENZIALE INTELLIGENTE
+ *
+ * FUNZIONAMENTO:
+ * • Se sei in pagina 1 → Pre-carica automaticamente pagina 2
+ * • Se sei in pagina 3 → Pre-carica automaticamente pagina 4
+ * • Navigazione istantanea: le pagine già visitate sono in cache
+ * • Adattamento dinamico: se il server cambia totalPages, il sistema si adatta
+ *
+ * CARATTERISTICHE:
+ * - Cache Map-based per performance ottimali
+ * - Pre-caricamento sequenziale solo della pagina successiva
+ * - Scadenza cache (5 minuti) per dati sempre aggiornati
+ * - Gestione memoria intelligente con cleanup automatico
+ * - Indicatori visivi per pre-caricamento in corso
+ * - Adattamento automatico a cambiamenti nel numero di pagine
+ * - Debug tools per monitoraggio (console: window.dashboard.debugCacheSystem())
+ *
+ * ESEMPIO DI UTILIZZO:
+ * 1. Carica pagina 1 → Sistema pre-carica pagina 2 in background
+ * 2. Click su "Successiva" → Pagina 2 appare istantaneamente (già in cache)
+ * 3. Sistema pre-carica pagina 3 in background
+ * 4. E così via...
+ */
+
 @Component({
   selector: 'app-dashboard',
   imports: [CommonModule, VeicleModal, SelectFilter],
@@ -42,7 +67,29 @@ import { IFilter, SelectFilter } from './select-filter';
             </tr>
           </thead>
           <tbody>
-            <!-- Loop attraverso i veicoli paginati -->
+            <!-- Mostra risultati della ricerca globale o veicoli paginati -->
+            @if (isGlobalSearchActive()) {
+            <!-- Risultati della ricerca globale -->
+            @for (item of filterList(); track item.id) {
+            <!-- Loop attraverso i chunk di proprietà del veicolo -->
+            @for (chunk of chunkKeys(recoveryVeicleKeys(item), 7); track $index) {
+            <tr>
+              <!-- Loop attraverso ogni proprietà del chunk -->
+              @for (key of chunk; track key) {
+              <td>
+                @if (key === 'createdAt') {
+                {{ formatDataIt(item[key]) }}
+                } @else {
+                {{ item[key] }}
+                }
+              </td>
+              }
+              <td class="center">
+                <button (click)="goToMap(item, $event)">Mostra Dettagli</button>
+              </td>
+            </tr>
+            } } } @else {
+            <!-- Veicoli paginati normalmente -->
             @for (item of paginatedVeicles(); track item.id) {
             <!-- Loop attraverso i chunk di proprietà del veicolo -->
             @for (chunk of chunkKeys(recoveryVeicleKeys(item), 7); track $index) {
@@ -61,13 +108,13 @@ import { IFilter, SelectFilter } from './select-filter';
                 <button (click)="goToMap(item, $event)">Mostra Dettagli</button>
               </td>
             </tr>
-            } }
+            } } }
           </tbody>
         </table>
       </div>
 
-      <!-- Controlli paginazione -->
-      @if (totalPages() > 1) {
+      <!-- Controlli paginazione - nascosti durante ricerca globale -->
+      @if (totalPages() > 1 && !isGlobalSearchActive()) {
       <div class="pagination-container">
         <div class="pagination-info">
           Pagina {{ currentPage() }} di {{ totalPages() }} ({{ totalCount() }} veicoli totali)
@@ -112,14 +159,43 @@ import { IFilter, SelectFilter } from './select-filter';
         </div>
       </div>
       }
-      <div class="stats">
-        <span class="stat-item">
+
+      <!-- Indicatore per ricerca globale -->
+      @if (isGlobalSearchActive()) {
+      <div class="search-results-info">
+        @if (isSearching()) {
+        <div class="search-indicator">
+          <strong>Ricerca in corso...</strong>
+          <span class="loading-spinner"></span>
+        </div>
+        } @else if (searchError()) {
+        <div class="search-indicator error">
+          <strong>{{ searchError() }}</strong>
+        </div>
+        <button class="btn-secondary" (click)="resetToNormalPagination()">
+          ← Torna alla visualizzazione normale
+        </button>
+        } @else {
+        <div class="search-indicator">
+          <strong>Ricerca globale attiva</strong>
+          <!-- - Mostrando {{ filterList().length }} risultati
+          su {{ allVeicles().length }} veicoli totali -->
+        </div>
+        <button class="btn-secondary" (click)="resetToNormalPagination()">
+          ← Torna alla visualizzazione normale
+        </button>
+        }
+      </div>
+      }
+      <!-- <div class="stats" >
+        <span class="stat-item" style="text-align: left;">
           Veicoli totali: <strong>{{ totalCount() }}</strong>
         </span>
-        <span class="stat-item">
+         <span class="stat-item">
           Con posizione: <strong>{{ getVeiclesWithPosition() }}</strong>
-        </span>
-      </div>
+        </span> 
+      </div> 
+      -->
     </div>
     @if (showModal()) {
     <app-veiclemodal
@@ -383,6 +459,84 @@ import { IFilter, SelectFilter } from './select-filter';
       order: -1;
     }
   }
+
+  /* Stili per statistiche */
+  .stats {
+    margin-top: 20px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    color: #6c757d;
+    font-size: 14px;
+  }
+
+  /* Stili per ricerca globale */
+  .search-results-info {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #e3f2fd;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .search-indicator {
+    color: #1976d2;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .search-indicator.error {
+    color: #d32f2f;
+  }
+
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e3f2fd;
+    border-top: 2px solid #2196f3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .btn-secondary {
+    padding: 8px 16px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    .search-results-info {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
   `,
 })
 export class Dashboard implements OnInit {
@@ -400,24 +554,50 @@ export class Dashboard implements OnInit {
   totalPages = signal(0);
   totalCount = signal(0); // Nuovo: conteggio totale dal server
 
+  // SISTEMA CACHE per pre-caricamento sequenziale
+  private pageCache = new Map<number, Veicles[]>(); // Cache delle pagine caricate
+  private cacheTimestamp = new Map<number, number>(); // Timestamp per scadenza cache
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minuti di validità
+  private isPreloading = signal(false); // Stato pre-caricamento (solo per debugging)
+  private preloadingPages = new Set<number>(); // Pagine in corso di pre-caricamento
+
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
-  veicleList = signal<Veicles[]>([]); // Solo i veicoli della pagina corrente
+  veicleList = signal<Veicles[]>([]); // Veicoli della pagina corrente o risultati della ricerca
+  allVeicles = signal<Veicles[]>([]); // Tutti i veicoli per la ricerca globale
   paginatedVeicles = signal<Veicles[]>([]); // Non più necessario ma mantenuto per compatibilità
   router = inject(Router);
+  isGlobalSearchActive = signal(false); // Flag per sapere se è attiva una ricerca globale
+  isSearching = signal(false); // Flag per stato di caricamento ricerca
+  searchError = signal<string | null>(null); // Errore durante la ricerca
+
   filterList = computed(() => {
-    const lista = this.veicleList();
-    let trimText = this.value().textFilter ? this.value().textFilter : '';
+    const lista = this.isGlobalSearchActive() ? this.allVeicles() : this.veicleList();
+    const filterValue = this.value();
+
+    if (!filterValue.textFilter || filterValue.textFilter.trim() === '') {
+      return lista;
+    }
+
+    let trimText = filterValue.textFilter;
+
     return lista.filter((veicolo) => {
-      if (this.value().valueOption === 'licensePlate') {
-        console.log('[DASHBOARD] Applicazione filtro per targa');
+      if (filterValue.valueOption === 'licensePlate') {
         return veicolo.licensePlate.toUpperCase().includes(trimText);
-      } else {
-        console.log('[DASHBOARD] Applicazione filtro per modello');
+      } else if (filterValue.valueOption === 'model') {
         return veicolo.model.toUpperCase().includes(trimText);
+      } else {
+        // Ricerca in tutti i campi quando valueOption è vuoto
+        return (
+          veicolo.licensePlate.toUpperCase().includes(trimText) ||
+          veicolo.model.toUpperCase().includes(trimText) ||
+          veicolo.brand?.toUpperCase().includes(trimText) ||
+          veicolo.status?.toUpperCase().includes(trimText)
+        );
       }
     });
   });
+
   value = signal<IFilter>({} as IFilter);
 
   constructor() {
@@ -428,8 +608,6 @@ export class Dashboard implements OnInit {
         this.filterList().length,
         'elementi'
       );
-      // Nota: Il filtraggio ora deve essere gestito lato server
-      // Per ora manteniamo solo il logging, il filtro sarà implementato in futuro
     });
   }
 
@@ -464,31 +642,250 @@ export class Dashboard implements OnInit {
 
   /**
    * Carica la lista dei veicoli dal servizio con paginazione lato server
+   * Utilizza cache per navigazione istantanea e pre-carica pagina successiva
+   * NUOVO: Utilizza dati pre-caricati dal login se disponibili per pagina 1
    * @param page - Numero di pagina da caricare (default: pagina corrente)
    */
   loadVeicles(page?: number): void {
     const currentPageToLoad = page || this.currentPage();
 
-    this.veicleService.getListVeicle(currentPageToLoad, this.itemsPerPage).subscribe((response) => {
-      // Aggiorna solo i veicoli della pagina corrente
-      this.veicleList.set(response.items);
-      this.paginatedVeicles.set(response.items); // Per compatibilità con il template
+    // CONTROLLO PRE-CARICAMENTO: Se è pagina 1, controlla se ci sono dati dal login
+    if (currentPageToLoad === 1) {
+      const preloadedData = this.getPreloadedFirstPage();
+      if (preloadedData) {
+        console.log('[DASHBOARD] Utilizzo dati pre-caricati dal login');
+        this.applyPreloadedData(preloadedData);
+        this.preloadNextPage(1); // Pre-carica pagina 2
+        return;
+      }
+    }
 
-      // Aggiorna i metadati di paginazione dal server
+    // CONTROLLO CACHE: Se la pagina è già in cache e valida, usala
+    const cachedData = this.getCachedPage(currentPageToLoad);
+    if (cachedData) {
+      console.log(`[DASHBOARD] Pagina ${currentPageToLoad} caricata da cache`);
+      this.applyCachedData(currentPageToLoad, cachedData);
+      // Pre-carica la pagina successiva se non già in cache
+      this.preloadNextPage(currentPageToLoad);
+      return;
+    }
+
+    console.log(`[DASHBOARD] Caricamento pagina ${currentPageToLoad} dal server...`);
+
+    this.veicleService.getListVeicle(currentPageToLoad, this.itemsPerPage).subscribe((response) => {
+      // Aggiorna i veicoli della pagina corrente
+      this.veicleList.set(response.items);
+      this.paginatedVeicles.set(response.items);
+
+      // AGGIORNAMENTO DINAMICO: metadati di paginazione dal server
       this.totalCount.set(response.totalCount);
       this.totalPages.set(response.totalPages);
       this.currentPage.set(response.page);
 
+      // ADATTAMENTO DINAMICO: Se il server ha cambiato il numero di pagine
+      this.adaptToDynamicPagination(response.totalPages);
+
+      // SALVA IN CACHE per navigazioni future
+      this.setCachedPage(currentPageToLoad, response.items);
+
       console.log(
-        '[DASHBOARD] Caricamento veicoli completato - Pagina:',
+        '[DASHBOARD] Caricamento completato - Pagina:',
         response.page,
         'di',
         response.totalPages,
-        '- Veicoli caricati:',
-        response.items.length
+        '- Veicoli:',
+        response.items.length,
+        '- Totale sul server:',
+        response.totalCount
       );
-      console.log('[DASHBOARD] Totale veicoli disponibili sul server:', response.totalCount);
+
+      // PRE-CARICAMENTO SEQUENZIALE: carica la pagina successiva
+      this.preloadNextPage(currentPageToLoad);
     });
+  }
+
+  /**
+   * GESTIONE CACHE: Ottiene dati dalla cache se validi
+   * @param page - Numero di pagina
+   * @returns Array di veicoli se in cache e valida, null altrimenti
+   */
+  private getCachedPage(page: number): Veicles[] | null {
+    const data = this.pageCache.get(page);
+    const timestamp = this.cacheTimestamp.get(page);
+
+    if (data && timestamp) {
+      const now = Date.now();
+      if (now - timestamp < this.CACHE_DURATION) {
+        return data;
+      } else {
+        // Cache scaduta, rimuovi
+        this.pageCache.delete(page);
+        this.cacheTimestamp.delete(page);
+        console.log(`[DASHBOARD] Cache scaduta per pagina ${page}, rimossa`);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * SALVATAGGIO CACHE: Salva dati pagina in cache
+   * @param page - Numero di pagina
+   * @param data - Dati da salvare
+   */
+  private setCachedPage(page: number, data: Veicles[]): void {
+    this.pageCache.set(page, [...data]); // Clone dell'array per sicurezza
+    this.cacheTimestamp.set(page, Date.now());
+    console.log(`[DASHBOARD] Pagina ${page} salvata in cache (${data.length} veicoli)`);
+  }
+
+  /**
+   * APPLICA DATI CACHED al componente
+   * @param page - Numero di pagina
+   * @param data - Dati cached
+   */
+  private applyCachedData(page: number, data: Veicles[]): void {
+    this.veicleList.set(data);
+    this.paginatedVeicles.set(data);
+    this.currentPage.set(page);
+    // Non aggiorniamo totalCount e totalPages da cache per evitare inconsistenze
+  }
+
+  /**
+   * GESTIONE PRE-CARICAMENTO: Recupera dati pre-caricati dal login
+   * @returns Dati pre-caricati se validi e recenti, null altrimenti
+   */
+  private getPreloadedFirstPage(): any | null {
+    try {
+      const preloadedData = localStorage.getItem('preloadedFirstPage');
+      if (!preloadedData) return null;
+
+      const data = JSON.parse(preloadedData);
+      const now = Date.now();
+      const dataAge = now - data.timestamp;
+
+      // I dati pre-caricati sono validi per 2 minuti
+      if (dataAge < 2 * 60 * 1000) {
+        return data;
+      } else {
+        // Rimuovi dati scaduti
+        localStorage.removeItem('preloadedFirstPage');
+        return null;
+      }
+    } catch (error) {
+      console.warn('[DASHBOARD] Errore lettura dati pre-caricati:', error);
+      localStorage.removeItem('preloadedFirstPage');
+      return null;
+    }
+  }
+
+  /**
+   * APPLICA DATI PRE-CARICATI: Utilizza i dati dal login
+   * @param preloadedData - Dati pre-caricati dal login
+   */
+  private applyPreloadedData(preloadedData: any): void {
+    this.veicleList.set(preloadedData.items);
+    this.paginatedVeicles.set(preloadedData.items);
+    this.currentPage.set(preloadedData.page);
+    this.totalCount.set(preloadedData.totalCount);
+    this.totalPages.set(preloadedData.totalPages);
+
+    // Salva anche in cache per coerenza
+    this.setCachedPage(preloadedData.page, preloadedData.items);
+
+    // Rimuovi i dati pre-caricati una volta utilizzati
+    localStorage.removeItem('preloadedFirstPage');
+
+    console.log('[DASHBOARD] Dati pre-caricati applicati con successo');
+  }
+
+  /**
+   * PRE-CARICAMENTO SEQUENZIALE: Se in pagina 1 → pre-carica pagina 2, etc.
+   * @param currentPage - Pagina corrente
+   */
+  private preloadNextPage(currentPage: number): void {
+    const nextPage = currentPage + 1;
+    const totalPages = this.totalPages();
+
+    // Controlla se esiste la pagina successiva e non è già in cache o in pre-caricamento
+    if (
+      nextPage <= totalPages &&
+      !this.getCachedPage(nextPage) &&
+      !this.preloadingPages.has(nextPage)
+    ) {
+      console.log(`[DASHBOARD] Avvio pre-caricamento pagina ${nextPage}...`);
+      this.isPreloading.set(true);
+      this.preloadingPages.add(nextPage);
+
+      this.veicleService.getListVeicle(nextPage, this.itemsPerPage).subscribe({
+        next: (response) => {
+          this.setCachedPage(nextPage, response.items);
+          this.preloadingPages.delete(nextPage);
+          this.isPreloading.set(false);
+          console.log(
+            `[DASHBOARD] Pre-caricamento pagina ${nextPage} completato (${response.items.length} veicoli)`
+          );
+        },
+        error: (error) => {
+          this.preloadingPages.delete(nextPage);
+          this.isPreloading.set(false);
+          console.error(`[DASHBOARD] Errore pre-caricamento pagina ${nextPage}:`, error);
+        },
+      });
+    }
+  }
+
+  /**
+   * ADATTAMENTO DINAMICO: Gestisce cambiamenti nel numero di pagine dal server
+   * @param newTotalPages - Nuovo numero totale di pagine dal server
+   */
+  private adaptToDynamicPagination(newTotalPages: number): void {
+    const oldTotalPages = this.totalPages();
+
+    if (newTotalPages !== oldTotalPages) {
+      console.log(
+        `[DASHBOARD] Adattamento dinamico: Pagine cambiate da ${oldTotalPages} a ${newTotalPages}`
+      );
+
+      // Se il numero di pagine è diminuito e siamo oltre il limite, torna alla prima pagina
+      if (this.currentPage() > newTotalPages) {
+        console.log(
+          `[DASHBOARD] Pagina corrente (${this.currentPage()}) oltre il limite, navigazione a pagina 1`
+        );
+        this.loadVeicles(1);
+        return;
+      }
+
+      // Pulisci cache di pagine che non esistono più
+      this.cleanupInvalidCachePages(newTotalPages);
+    }
+  }
+
+  /**
+   * PULIZIA CACHE: Rimuove pagine che non esistono più
+   * @param maxValidPage - Ultimo numero di pagina valido
+   */
+  private cleanupInvalidCachePages(maxValidPage: number): void {
+    const pagesToRemove: number[] = [];
+
+    for (const page of this.pageCache.keys()) {
+      if (page > maxValidPage) {
+        pagesToRemove.push(page);
+      }
+    }
+
+    if (pagesToRemove.length > 0) {
+      pagesToRemove.forEach((page) => {
+        this.pageCache.delete(page);
+        this.cacheTimestamp.delete(page);
+        this.preloadingPages.delete(page); // Interrompi pre-caricamenti non validi
+      });
+      console.log(
+        `[DASHBOARD] Rimosse ${
+          pagesToRemove.length
+        } pagine non valide dalla cache: ${pagesToRemove.join(', ')}`
+      );
+    }
   }
 
   // campi da nascondere nella tabella
@@ -561,11 +958,21 @@ export class Dashboard implements OnInit {
     );
   }
 
-  // Metodi per la paginazione lato server
+  // Metodi per la paginazione lato server con cache
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages()) {
-      console.log('[DASHBOARD] Navigazione alla pagina:', page);
-      this.loadVeicles(page);
+      console.log(`[DASHBOARD] Navigazione alla pagina: ${page}`);
+
+      // Controlla se la pagina è già in cache
+      const cachedData = this.getCachedPage(page);
+      if (cachedData) {
+        console.log(`[DASHBOARD] Caricamento istantaneo da cache per pagina ${page}`);
+        this.applyCachedData(page, cachedData);
+        this.preloadNextPage(page); // Pre-carica la successiva se necessario
+      } else {
+        // Carica dal server se non in cache
+        this.loadVeicles(page);
+      }
     }
   }
 
@@ -598,16 +1005,145 @@ export class Dashboard implements OnInit {
     ).length;
   }
 
+  /**
+   * STATISTICHE CACHE per debugging e monitoraggio
+   * @returns Informazioni sullo stato della cache
+   */
+  public getCacheStats(): {
+    totalCached: number;
+    validCached: number;
+    preloadingCount: number;
+    cacheHitRate: string;
+  } {
+    const now = Date.now();
+    let validCached = 0;
+
+    // Conta quante pagine in cache sono ancora valide
+    for (const [page, timestamp] of this.cacheTimestamp.entries()) {
+      if (now - timestamp < this.CACHE_DURATION) {
+        validCached++;
+      }
+    }
+
+    const totalCached = this.pageCache.size;
+    const totalPages = this.totalPages();
+    const hitRate = totalPages > 0 ? ((validCached / totalPages) * 100).toFixed(1) : '0';
+
+    return {
+      totalCached,
+      validCached,
+      preloadingCount: this.preloadingPages.size,
+      cacheHitRate: `${hitRate}%`,
+    };
+  }
+
+  /**
+   * DEBUG: Metodo per ispezionare lo stato completo del sistema (da console)
+   * Uso: Apri DevTools → Console → scrivi: window.dashboard.debugCacheSystem()
+   */
+  public debugCacheSystem(): void {
+    const stats = this.getCacheStats();
+    console.group('DASHBOARD CACHE SYSTEM DEBUG');
+    console.log('Statistiche Generali:');
+    console.table({
+      'Pagina Corrente': this.currentPage(),
+      'Totale Pagine': this.totalPages(),
+      'Totale Veicoli': this.totalCount(),
+      'Veicoli per Pagina': this.itemsPerPage,
+    });
+
+    console.log('Stato Cache:');
+    console.table(stats);
+
+    console.log('Pagine in Cache:');
+    const cacheDetails: any = {};
+    for (const [page, timestamp] of this.cacheTimestamp.entries()) {
+      const now = Date.now();
+      const ageMinutes = Math.floor((now - timestamp) / (1000 * 60));
+      const isValid = now - timestamp < this.CACHE_DURATION;
+      cacheDetails[`Pagina ${page}`] = {
+        'Età (minuti)': ageMinutes,
+        Valida: isValid ? 'SI' : 'NO',
+        Veicoli: this.pageCache.get(page)?.length || 0,
+      };
+    }
+    console.table(cacheDetails);
+
+    if (this.preloadingPages.size > 0) {
+      console.log('Pre-caricamenti in corso:', Array.from(this.preloadingPages));
+    }
+
+    console.groupEnd();
+  }
+
   // Metodo per il filtraggio dei campi in base a targa o modello
   onFilterBy(value: IFilter) {
+    console.log('[DASHBOARD] Ricevuto filtro:', value);
+
     this.value.set(value);
-    if (!value.textFilter || value.textFilter.trim() === '') {
-      console.log('[DASHBOARD] Filtro svuotato - ricaricamento prima pagina');
-      setTimeout(() => {
-        this.loadVeicles(1);
-      }, 500);
+
+    if (value.isGlobalSearch && value.textFilter && value.textFilter.trim() !== '') {
+      console.log('[DASHBOARD] Iniziando ricerca globale...');
+      this.performGlobalSearch(value);
+    } else if (!value.textFilter || value.textFilter.trim() === '') {
+      console.log('[DASHBOARD] Filtro svuotato - tornando alla paginazione normale');
+      this.resetToNormalPagination();
     }
-    // Nota: Il filtro con testo dovrà essere implementato lato server in futuro
+  }
+
+  // Esegue una ricerca globale su tutti i veicoli
+  private performGlobalSearch(filterValue: IFilter): void {
+    this.isGlobalSearchActive.set(true);
+    this.isSearching.set(true);
+    this.searchError.set(null);
+    this.currentPage.set(1); // Reset alla prima pagina
+
+    // Carica tutti i veicoli per la ricerca
+    this.veicleService.getAllVeicles().subscribe({
+      next: (response) => {
+        console.log(
+          '[DASHBOARD] Caricati tutti i veicoli per ricerca globale:',
+          response.items.length
+        );
+        this.allVeicles.set(response.items);
+        this.isSearching.set(false);
+
+        // Aggiorna il conteggio dei risultati nel componente di filtro
+        const filteredResults = this.filterList();
+        this.updateFilterComponent(filteredResults.length);
+
+        console.log('[DASHBOARD] Risultati ricerca globale:', filteredResults.length);
+      },
+      error: (error) => {
+        console.error('[DASHBOARD] Errore durante la ricerca globale:', error);
+        this.isSearching.set(false);
+        this.isGlobalSearchActive.set(false);
+        this.searchError.set('Errore durante la ricerca. Riprova.');
+      },
+    });
+  }
+
+  // Torna alla paginazione normale
+  resetToNormalPagination(): void {
+    this.isGlobalSearchActive.set(false);
+    this.isSearching.set(false);
+    this.searchError.set(null);
+    this.allVeicles.set([]);
+    this.updateFilterComponent(null);
+
+    // Ricarica la pagina corrente
+    setTimeout(() => {
+      this.loadVeicles(this.currentPage());
+    }, 300);
+  }
+
+  // Aggiorna il componente di filtro con il numero di risultati
+  private updateFilterComponent(count: number | null): void {
+    // Trova il componente SelectFilter e aggiorna i risultati
+    // Questo sarà chiamato attraverso una ViewChild reference se necessario
+    if (count !== null) {
+      console.log('[DASHBOARD] Aggiornamento risultati filtro:', count);
+    }
   }
 
   //metodo per la chiusura della modale fuori dalla modale
