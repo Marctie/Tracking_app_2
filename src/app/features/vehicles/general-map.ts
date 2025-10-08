@@ -587,7 +587,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
 
       const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
-      
 
       this.veicleList.set(updatedVeicles);
       console.log(
@@ -725,7 +724,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         console.log('[GENERAL-MAP] Mappa pronta - Forzatura caricamento veicoli');
         this.loadAllVehiclePositionsOnInit();
       }
-    }, 100); // Piccolo delay per assicurare l'inizializzazione completa
+    }, 100);
   }
 
   private mergeVeiclesWithMqttData(
@@ -759,10 +758,10 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
               mqttPosition.status
             );
           }
-
-          console.log("Queta è la posizione relativa allo status del singolo veicolo", mqttPosition.status);
-          
-
+          console.log(
+            'Queta è la posizione relativa allo status del singolo veicolo',
+            mqttPosition.status
+          );
           return {
             ...veicle,
             lastPosition: mqttPosition,
