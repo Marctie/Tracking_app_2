@@ -109,6 +109,88 @@ import { VeiclePosition } from '../../models/veicle-position';
         </div>
       </div>
 
+      <!-- MODALITÀ SVILUPPATORE - 5 BOX VEICOLI -->
+      <div class="developer-section">
+        <h4>🔧 Modalità Sviluppatore - Primi 5 Veicoli</h4>
+        <div class="developer-grid">
+          @for (vehicle of getFirst5Vehicles(); track vehicle.id) {
+          <div class="developer-box">
+            <div class="developer-header">
+              <h5>🚗 {{ vehicle.licensePlate }}</h5>
+              <span class="status-badge" [style.background-color]="getStatusColor(vehicle.status)">
+                {{ vehicle.status }}
+              </span>
+            </div>
+
+            <div class="developer-content">
+              <div class="detail-row">
+                <span class="label">🆔 ID:</span>
+                <span class="value">{{ vehicle.id }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="label">🏭 Modello:</span>
+                <span class="value">{{ vehicle.model }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="label">🏢 Marca:</span>
+                <span class="value">{{ vehicle.brand }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="label">📅 Creato:</span>
+                <span class="value">{{ formatDate(vehicle.createdAt) }}</span>
+              </div>
+
+              @if (vehicle.lastPosition) {
+              <div class="position-section">
+                <h6>📍 Ultima Posizione:</h6>
+                <div class="detail-row">
+                  <span class="label">🌍 Lat:</span>
+                  <span class="value">{{ vehicle.lastPosition.latitude.toFixed(6) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">🌍 Lng:</span>
+                  <span class="value">{{ vehicle.lastPosition.longitude.toFixed(6) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">⚡ Velocità:</span>
+                  <span class="value">{{ vehicle.lastPosition.speed }} km/h</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">🧭 Direzione:</span>
+                  <span class="value">{{ vehicle.lastPosition.heading }}°</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">🕒 Timestamp:</span>
+                  <span class="value">{{ formatDate(vehicle.lastPosition.timestamp) }}</span>
+                </div>
+              </div>
+              } @else {
+              <div class="no-position">❌ Nessuna posizione disponibile</div>
+              }
+
+              <div class="developer-actions">
+                @if (vehicle.lastPosition && vehicle.lastPosition.latitude &&
+                vehicle.lastPosition.longitude) {
+                <button
+                  class="map-btn"
+                  (click)="goToVehicleOnMap(vehicle)"
+                  title="Vai alla posizione del veicolo sulla mappa"
+                >
+                  🗺️ Vai sulla Mappa
+                </button>
+                } @else {
+                <button class="map-btn disabled" disabled>🚫 Posizione non disponibile</button>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
       <!-- Container per la mappa Leaflet -->
       <div class="map-wrapper">
         <div id="map" class="leaflet-map"></div>
@@ -320,6 +402,162 @@ import { VeiclePosition } from '../../models/veicle-position';
     .legend-color.maintenance { background-color: #ffc107; }
     .legend-color.unknown { background-color: #6c757d; }
 
+    /* === MODALITÀ SVILUPPATORE === */
+    .developer-section {
+      background: linear-gradient(135deg, #fff3cd, #fef5e7);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 2px solid #ffc107;
+    }
+
+    .developer-section h4 {
+      margin: 0 0 15px 0;
+      color: #856404;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .developer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .developer-box {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 2px solid #dee2e6;
+      transition: all 0.3s ease;
+    }
+
+    .developer-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      border-color: #007bff;
+    }
+
+    .developer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f8f9fa;
+    }
+
+    .developer-header h5 {
+      margin: 0;
+      color: #007bff;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .developer-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .detail-row .label {
+      font-weight: 500;
+      color: #495057;
+      font-size: 12px;
+      min-width: 80px;
+    }
+
+    .detail-row .value {
+      font-family: 'Courier New', monospace;
+      color: #212529;
+      font-size: 11px;
+      background: #f8f9fa;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-align: right;
+      flex: 1;
+      margin-left: 8px;
+    }
+
+    .position-section {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 6px;
+      margin: 8px 0;
+      border-left: 3px solid #2196f3;
+    }
+
+    .position-section h6 {
+      margin: 0 0 8px 0;
+      color: #1976d2;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .no-position {
+      background: #ffebee;
+      color: #c62828;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .developer-actions {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f8f9fa;
+    }
+
+    .map-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #28a745, #1e7e34);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .map-btn:hover:not(.disabled) {
+      background: linear-gradient(135deg, #1e7e34, #155724);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .map-btn.disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
     /* === MAPPA === */
     .map-wrapper {
       background: white;
@@ -370,6 +608,10 @@ import { VeiclePosition } from '../../models/veicle-position';
 
       .legend-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+
+      .developer-grid {
+        grid-template-columns: 1fr;
       }
 
       .leaflet-map {
@@ -716,7 +958,7 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
    * @param status - Lo stato del veicolo
    * @returns Il colore esadecimale corrispondente allo stato
    */
-  private getStatusColor(status: string): string {
+  public getStatusColor(status: string): string {
     // Normalizza lo stato a lowercase per il confronto
     const normalizedStatus = status?.toLowerCase().trim() || 'unknown';
 
@@ -744,7 +986,44 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     this.markers = [];
   }
 
-  private formatDate(date: Date): string {
+  // MODALITÀ SVILUPPATORE: Metodo per ottenere i primi 5 veicoli
+  public getFirst5Vehicles(): Veicles[] {
+    return this.veicleList().slice(0, 5);
+  }
+
+  // MODALITÀ SVILUPPATORE: Metodo per andare alla posizione del veicolo sulla mappa
+  public goToVehicleOnMap(vehicle: Veicles): void {
+    if (
+      !vehicle.lastPosition ||
+      !vehicle.lastPosition.latitude ||
+      !vehicle.lastPosition.longitude
+    ) {
+      console.warn('Veicolo senza posizione valida:', vehicle.licensePlate);
+      return;
+    }
+
+    console.log('Navigazione alla posizione del veicolo:', vehicle.licensePlate);
+
+    // Pulisce i marker esistenti
+    this.clearMarkers();
+
+    // Aggiunge solo il marker del veicolo selezionato
+    this.addVeicleMarker(vehicle);
+
+    // Centra la mappa sul veicolo con zoom elevato
+    const position = vehicle.lastPosition;
+    this.map.setView([position.latitude, position.longitude], 16);
+
+    // Apre automaticamente il popup del marker
+    setTimeout(() => {
+      if (this.markers.length > 0) {
+        this.markers[0].openPopup();
+      }
+    }, 500);
+  }
+
+  // Rende pubblico il metodo formatDate per il template
+  public formatDate(date: Date): string {
     return new Date(date).toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',

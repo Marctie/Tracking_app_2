@@ -479,7 +479,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Effect per aggiornamenti MQTT in tempo reale 
+    // Effect per aggiornamenti MQTT in tempo reale
     effect(() => {
       const mqttPositions = this.mqttService.positionVeiclesList();
       if (mqttPositions.length > 0 && this.veicleList().length > 0 && this.map) {
@@ -587,6 +587,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
 
       const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
+      
 
       this.veicleList.set(updatedVeicles);
       console.log(
@@ -740,15 +741,33 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
           : new Date(0);
         const mqttTimestamp = new Date(mqttPosition.timestamp);
 
+        // Aggiorna sia la posizione che lo stato se i dati MQTT sono più recenti
         if (mqttTimestamp > dbTimestamp) {
           console.log(
             '[GENERAL-MAP] Posizione aggiornata con dati MQTT per veicolo:',
             veicle.licensePlate
           );
 
+          // Controlla se anche lo stato è cambiato
+          if (mqttPosition.status && mqttPosition.status !== veicle.status) {
+            console.log(
+              '[GENERAL-MAP] Stato aggiornato per veicolo:',
+              veicle.licensePlate,
+              'da',
+              veicle.status,
+              'a',
+              mqttPosition.status
+            );
+          }
+
+          console.log("Queta è la posizione relativa allo status del singolo veicolo", mqttPosition.status);
+          
+
           return {
             ...veicle,
             lastPosition: mqttPosition,
+            // Aggiorna lo stato solo se presente nei dati MQTT
+            status: mqttPosition.status || veicle.status,
           };
         }
       }

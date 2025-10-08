@@ -5,4 +5,6 @@ export interface VeiclePosition{
         speed: number;
         heading: number;
         timestamp: Date;
+        status: string;
+
 }

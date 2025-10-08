@@ -609,6 +609,15 @@ export class Dashboard implements OnInit {
         'elementi'
       );
     });
+
+    // NUOVO: Effect per aggiornamenti live degli stati via MQTT
+    effect(() => {
+      const mqttPositions = this.mqttService.positionVeiclesList();
+      if (mqttPositions.length > 0 && this.veicleList().length > 0) {
+        console.log('[DASHBOARD] Rilevato aggiornamento MQTT - aggiornamento stati veicoli');
+        this.updateVehicleStatesFromMqtt(mqttPositions);
+      }
+    });
   }
 
   ngOnInit() {
@@ -1143,6 +1152,68 @@ export class Dashboard implements OnInit {
     // Questo sarà chiamato attraverso una ViewChild reference se necessario
     if (count !== null) {
       console.log('[DASHBOARD] Aggiornamento risultati filtro:', count);
+    }
+  }
+
+  // NUOVO: Metodo per aggiornare gli stati dei veicoli in tempo reale via MQTT
+  private updateVehicleStatesFromMqtt(mqttPositions: any[]): void {
+    const currentVehicles = this.veicleList();
+    let updatedCount = 0;
+
+    // Crea una nuova lista di veicoli con stati aggiornati
+    const updatedVehicles = currentVehicles.map((vehicle) => {
+      // Cerca i dati MQTT per questo veicolo
+      const mqttData = mqttPositions.find((mqtt) => mqtt.vehicleId === vehicle.id);
+
+      if (mqttData && mqttData.status && mqttData.status !== vehicle.status) {
+        console.log(
+          '[DASHBOARD] Aggiornamento stato live per veicolo:',
+          vehicle.licensePlate,
+          'da',
+          vehicle.status,
+          'a',
+          mqttData.status
+        );
+        updatedCount++;
+
+        // Restituisce il veicolo con lo stato aggiornato
+        return {
+          ...vehicle,
+          status: mqttData.status,
+          // Aggiorna anche la posizione se disponibile
+          lastPosition:
+            mqttData.timestamp && mqttData.latitude && mqttData.longitude
+              ? {
+                  ...vehicle.lastPosition,
+                  latitude: mqttData.latitude,
+                  longitude: mqttData.longitude,
+                  speed: mqttData.speed || vehicle.lastPosition?.speed || 0,
+                  heading: mqttData.heading || vehicle.lastPosition?.heading || 0,
+                  timestamp: mqttData.timestamp,
+                }
+              : vehicle.lastPosition,
+        };
+      }
+
+      return vehicle;
+    });
+
+    // Aggiorna la lista solo se ci sono stati cambiamenti
+    if (updatedCount > 0) {
+      console.log('[DASHBOARD] Aggiornati', updatedCount, 'stati di veicoli via MQTT');
+      this.veicleList.set(updatedVehicles);
+
+      // Se siamo in modalità ricerca globale, aggiorna anche quella lista
+      if (this.isGlobalSearchActive()) {
+        const updatedAllVehicles = this.allVeicles().map((vehicle) => {
+          const mqttData = mqttPositions.find((mqtt) => mqtt.vehicleId === vehicle.id);
+          if (mqttData && mqttData.status && mqttData.status !== vehicle.status) {
+            return { ...vehicle, status: mqttData.status };
+          }
+          return vehicle;
+        });
+        this.allVeicles.set(updatedAllVehicles);
+      }
     }
   }
 
