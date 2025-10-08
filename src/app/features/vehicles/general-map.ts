@@ -34,7 +34,6 @@ import { Router } from '@angular/router';
           </div>
         </div>
       </div>
-
       <!-- Descrizione funzionalità -->
       <!-- <div class="description">
         <p>
@@ -480,7 +479,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Effect per aggiornamenti MQTT in tempo reale - PRESERVA SEMPRE la vista della mappa
+    // Effect per aggiornamenti MQTT in tempo reale 
     effect(() => {
       const mqttPositions = this.mqttService.positionVeiclesList();
       if (mqttPositions.length > 0 && this.veicleList().length > 0 && this.map) {
@@ -496,6 +495,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     // Carica i dati dei veicoli
     this.loadVeicles();
+    //  Carica automaticamente tutte le posizioni all'apertura
+    this.loadAllVehiclePositionsOnInit();
     // Avvia l'aggiornamento automatico ogni 5 secondi
     this.startAutoUpdate();
     // Effect per reagire ai cambiamenti del veicolo selezionato
@@ -506,6 +507,9 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     this.setupLeafletIcons();
     // Inizializza la mappa dopo che la vista è stata caricata
     this.initMap();
+
+    //  Dopo l'inizializzazione della mappa, carica e mostra tutti i veicoli
+    this.loadAndShowAllVehiclesAfterMapInit();
   }
 
   ngOnDestroy(): void {
@@ -598,6 +602,129 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         this.addVeicleMarkers(preserveMapView);
       }
     });
+  }
+
+  /**
+   *  Carica automaticamente tutte le posizioni dei veicoli all'apertura
+   * Questa funzione si aggiunge alle tue funzionalità esistenti senza modificarle
+   */
+  private loadAllVehiclePositionsOnInit(): void {
+    console.log("[GENERAL-MAP] Caricamento automatico di tutte le posizioni all'apertura");
+
+    // Usa il tuo metodo getAllVeicles esistente per ottenere TUTTI i veicoli
+    this.veicleService.getAllVeicles().subscribe({
+      next: (response) => {
+        console.log('[GENERAL-MAP] Caricati tutti i veicoli disponibili:', response.items.length);
+
+        // Integra con i dati MQTT esistenti
+        const mqttPositions = this.mqttService.positionVeiclesList();
+        const allVehiclesWithPositions = this.mergeVeiclesWithMqttData(
+          response.items,
+          mqttPositions
+        );
+
+        // Filtra solo i veicoli che hanno posizioni valide per la visualizzazione
+        const vehiclesWithValidPositions = allVehiclesWithPositions.filter(
+          (vehicle) =>
+            vehicle.lastPosition &&
+            vehicle.lastPosition.latitude &&
+            vehicle.lastPosition.longitude &&
+            vehicle.lastPosition.latitude !== 0 &&
+            vehicle.lastPosition.longitude !== 0
+        );
+
+        console.log(
+          '[GENERAL-MAP] Veicoli con posizioni valide:',
+          vehiclesWithValidPositions.length
+        );
+
+        // Aggiorna la lista con tutti i veicoli (anche quelli senza posizione per le statistiche)
+        this.veicleList.set(allVehiclesWithPositions);
+
+        // Se la mappa è già inizializzata, mostra tutti i marker
+        if (this.map && vehiclesWithValidPositions.length > 0) {
+          console.log('[GENERAL-MAP] Visualizzazione di tutti i veicoli sulla mappa');
+          this.showAllVehicleMarkersOnMap(vehiclesWithValidPositions);
+        }
+
+        // Log delle statistiche per debug
+        console.log('[GENERAL-MAP] Statistiche caricamento iniziale:', {
+          totaleVeicoli: allVehiclesWithPositions.length,
+          conPosizione: vehiclesWithValidPositions.length,
+          online: this.getVeiclesOnline(),
+          offline: this.getVeiclesOffline(),
+          manutenzione: this.getVeiclesMaintenance(),
+        });
+      },
+      error: (error) => {
+        console.error(
+          '[GENERAL-MAP] Errore durante il caricamento iniziale delle posizioni:',
+          error
+        );
+      },
+    });
+  }
+
+  /**
+   *  Mostra tutti i veicoli sulla mappa con vista ottimale
+   * Metodo di supporto per la visualizzazione iniziale
+   */
+  private showAllVehicleMarkersOnMap(vehicles: Veicles[]): void {
+    // Pulisce i marker esistenti
+    this.clearMarkers();
+
+    // Aggiunge un marker per ogni veicolo con posizione valida
+    vehicles.forEach((vehicle) => {
+      if (vehicle.lastPosition && vehicle.lastPosition.latitude && vehicle.lastPosition.longitude) {
+        this.addVeicleMarker(vehicle);
+      }
+    });
+
+    // Centra la mappa per mostrare tutti i veicoli se ce ne sono più di uno
+    if (this.markers.length > 1) {
+      const group = new L.FeatureGroup(this.markers);
+      this.map.fitBounds(group.getBounds().pad(0.05)); // Padding ridotto per vista migliore
+      console.log('[GENERAL-MAP] Vista centrata su tutti i veicoli:', this.markers.length);
+    } else if (this.markers.length === 1) {
+      // Se c'è solo un veicolo, centra su di esso
+      const vehicle = vehicles[0];
+      this.map.setView([vehicle.lastPosition.latitude, vehicle.lastPosition.longitude], 14);
+      console.log('[GENERAL-MAP] Vista centrata su singolo veicolo');
+    }
+
+    console.log('[GENERAL-MAP] Marker visualizzati sulla mappa:', this.markers.length);
+  }
+
+  /**
+   *  Carica e mostra tutti i veicoli dopo l'inizializzazione della mappa
+   * Questo metodo viene chiamato dopo che la mappa è completamente inizializzata
+   */
+  private loadAndShowAllVehiclesAfterMapInit(): void {
+    // Aspetta un momento per assicurarsi che la mappa sia completamente pronta
+    setTimeout(() => {
+      if (this.veicleList().length > 0) {
+        // Se i veicoli sono già stati caricati in ngOnInit, mostrali sulla mappa
+        const vehiclesWithValidPositions = this.veicleList().filter(
+          (vehicle) =>
+            vehicle.lastPosition &&
+            vehicle.lastPosition.latitude &&
+            vehicle.lastPosition.longitude &&
+            vehicle.lastPosition.latitude !== 0 &&
+            vehicle.lastPosition.longitude !== 0
+        );
+
+        if (vehiclesWithValidPositions.length > 0) {
+          console.log(
+            '[GENERAL-MAP] Mappa pronta - Visualizzazione veicoli caricati precedentemente'
+          );
+          this.showAllVehicleMarkersOnMap(vehiclesWithValidPositions);
+        }
+      } else {
+        // Se i veicoli non sono ancora stati caricati, forzare il caricamento
+        console.log('[GENERAL-MAP] Mappa pronta - Forzatura caricamento veicoli');
+        this.loadAllVehiclePositionsOnInit();
+      }
+    }, 100); // Piccolo delay per assicurare l'inizializzazione completa
   }
 
   private mergeVeiclesWithMqttData(
