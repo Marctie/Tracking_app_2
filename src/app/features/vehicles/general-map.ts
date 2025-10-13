@@ -14,6 +14,7 @@ import { Veicles } from '../../models/veicles';
 import { VeicleService } from '../../services/veicle-service';
 import { MyMqttService } from '../../services/mymqtt-service';
 import { Router } from '@angular/router';
+import { VehicleCacheService } from '../../services/vehicle-cache.service';
 
 @Component({
   selector: 'app-general-map',
@@ -455,6 +456,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   // Injection dei servizi e signal per i dati
   private veicleService = inject(VeicleService); // Servizio per dati dal database
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
+  private cacheService = inject(VehicleCacheService); // Servizio per cache condivisa
   veicleList = signal<Veicles[]>([]);
 
   // Mappa dei colori per gli stati dei veicoli
@@ -611,58 +613,97 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private loadAllVehiclePositionsOnInit(): void {
     console.log("[GENERAL-MAP] Caricamento automatico di tutte le posizioni all'apertura");
 
-    // Usa il tuo metodo getAllVeicles esistente per ottenere TUTTI i veicoli
+    // Controlla prima se ci sono dati precaricati dal login
+    const preloadedData = this.checkPreloadedMapData();
+    if (preloadedData) {
+      console.log('[GENERAL-MAP] Utilizzo dati precaricati dal login:', preloadedData.items.length);
+      this.processVehicleData(preloadedData.items);
+      return;
+    }
+
+    // Se non ci sono dati precaricati, carica dal server
+    console.log('[GENERAL-MAP] Nessun precaricamento trovato, caricamento dal server...');
     this.veicleService.getAllVeicles().subscribe({
       next: (response) => {
         console.log('[GENERAL-MAP] Caricati tutti i veicoli disponibili:', response.items.length);
-
-        // Integra con i dati MQTT esistenti
-        const mqttPositions = this.mqttService.positionVeiclesList();
-        const allVehiclesWithPositions = this.mergeVeiclesWithMqttData(
-          response.items,
-          mqttPositions
-        );
-
-        // Filtra solo i veicoli che hanno posizioni valide per la visualizzazione
-        const vehiclesWithValidPositions = allVehiclesWithPositions.filter(
-          (vehicle) =>
-            vehicle.lastPosition &&
-            vehicle.lastPosition.latitude &&
-            vehicle.lastPosition.longitude &&
-            vehicle.lastPosition.latitude !== 0 &&
-            vehicle.lastPosition.longitude !== 0
-        );
-
-        console.log(
-          '[GENERAL-MAP] Veicoli con posizioni valide:',
-          vehiclesWithValidPositions.length
-        );
-
-        // Aggiorna la lista con tutti i veicoli (anche quelli senza posizione per le statistiche)
-        this.veicleList.set(allVehiclesWithPositions);
-
-        // Se la mappa è già inizializzata, mostra tutti i marker
-        if (this.map && vehiclesWithValidPositions.length > 0) {
-          console.log('[GENERAL-MAP] Visualizzazione di tutti i veicoli sulla mappa');
-          this.showAllVehicleMarkersOnMap(vehiclesWithValidPositions);
-        }
-
-        // Log delle statistiche per debug
-        console.log('[GENERAL-MAP] Statistiche caricamento iniziale:', {
-          totaleVeicoli: allVehiclesWithPositions.length,
-          conPosizione: vehiclesWithValidPositions.length,
-          online: this.getVeiclesOnline(),
-          offline: this.getVeiclesOffline(),
-          manutenzione: this.getVeiclesMaintenance(),
-        });
+        this.processVehicleData(response.items);
       },
       error: (error) => {
-        console.error(
-          '[GENERAL-MAP] Errore durante il caricamento iniziale delle posizioni:',
-          error
-        );
+        console.error('[GENERAL-MAP] Errore nel caricamento dei veicoli:', error);
       },
     });
+  }
+
+  /**
+   * Controlla se ci sono dati precaricati validi nel localStorage
+   */
+  private checkPreloadedMapData(): { items: any[]; totalCount: number } | null {
+    try {
+      const stored = localStorage.getItem('preloadedMapData');
+      if (!stored) return null;
+
+      const data = JSON.parse(stored);
+      const now = Date.now();
+      const maxAge = 5 * 60 * 1000; // 5 minuti di validità
+
+      // Verifica se i dati sono ancora validi
+      if (data.timestamp && now - data.timestamp < maxAge) {
+        return data;
+      } else {
+        // Rimuovi dati scaduti
+        localStorage.removeItem('preloadedMapData');
+        return null;
+      }
+    } catch (error) {
+      console.warn('[GENERAL-MAP] Errore lettura dati precaricati:', error);
+      localStorage.removeItem('preloadedMapData');
+      return null;
+    }
+  }
+
+  /**
+   * Processa i dati dei veicoli (da precaricamento o da server)
+   */
+  private processVehicleData(vehicles: any[]): void {
+    // Integra con i dati MQTT esistenti
+    const mqttPositions = this.mqttService.positionVeiclesList();
+    const allVehiclesWithPositions = this.mergeVeiclesWithMqttData(vehicles, mqttPositions);
+
+    // Filtra solo i veicoli che hanno posizioni valide per la visualizzazione
+    const vehiclesWithValidPositions = allVehiclesWithPositions.filter(
+      (vehicle) =>
+        vehicle.lastPosition &&
+        vehicle.lastPosition.latitude &&
+        vehicle.lastPosition.longitude &&
+        vehicle.lastPosition.latitude !== 0 &&
+        vehicle.lastPosition.longitude !== 0
+    );
+
+    console.log('[GENERAL-MAP] Veicoli con posizioni valide:', vehiclesWithValidPositions.length);
+
+    // Aggiorna la lista con tutti i veicoli (anche quelli senza posizione per le statistiche)
+    this.veicleList.set(allVehiclesWithPositions);
+
+    // Se la mappa è già inizializzata, mostra tutti i marker
+    if (this.map && vehiclesWithValidPositions.length > 0) {
+      console.log('[GENERAL-MAP] Visualizzazione di tutti i veicoli sulla mappa');
+      this.showAllVehicleMarkersOnMap(vehiclesWithValidPositions);
+    }
+
+    // Log delle statistiche per debug
+    console.log('[GENERAL-MAP] Statistiche caricamento iniziale:', {
+      totaleVeicoli: allVehiclesWithPositions.length,
+      conPosizione: vehiclesWithValidPositions.length,
+      online: this.getVeiclesOnline(),
+      offline: this.getVeiclesOffline(),
+      manutenzione: this.getVeiclesMaintenance(),
+    });
+
+    // Salva i dati nella cache per uso futuro
+    this.cacheService.saveMapData(allVehiclesWithPositions);
+
+    // Sincronizza la cache dashboard con i dati aggiornati
+    this.cacheService.syncDashboardFromMap(allVehiclesWithPositions);
   }
 
   /**
@@ -1227,6 +1268,14 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   backToDashboard() {
+    console.log('[GENERAL-MAP] Ritorno alla dashboard con cache sincronizzata');
+
+    // Assicura che la cache dashboard sia aggiornata con i dati correnti
+    const currentVehicles = this.veicleList();
+    if (currentVehicles.length > 0) {
+      this.cacheService.syncDashboardFromMap(currentVehicles);
+    }
+
     this.router.navigate(['/dashboard']);
   }
 }

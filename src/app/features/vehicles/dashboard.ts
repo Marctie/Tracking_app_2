@@ -17,6 +17,7 @@ import { Router } from '@angular/router';
 import { VeicleModal } from './modals/veicle-modal';
 import { MyMqttService } from '../../services/mymqtt-service';
 import { IFilter, SelectFilter } from './select-filter';
+import { VehicleCacheService } from '../../services/vehicle-cache.service';
 
 /**
  * DASHBOARD CON PRE-CARICAMENTO SEQUENZIALE INTELLIGENTE
@@ -50,7 +51,7 @@ import { IFilter, SelectFilter } from './select-filter';
     <!-- test -->
     <div class="dashboard-container" (click)="onClickOutsideModal()">
       <h1>Benvenuto sig.{{ userLogin.firstName() || getStoredUserName() }}</h1>
-      <div class="marco">
+      <div>
         <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       </div>
 
@@ -62,7 +63,7 @@ import { IFilter, SelectFilter } from './select-filter';
               <th>Model</th>
               <th>Brand</th>
               <th>Status</th>
-              <th>Created At</th>
+              <!-- <th>Created At</th> -->
               <th>Action Button</th>
             </tr>
           </thead>
@@ -173,7 +174,7 @@ import { IFilter, SelectFilter } from './select-filter';
           <strong>{{ searchError() }}</strong>
         </div>
         <button class="btn-secondary" (click)="resetToNormalPagination()">
-          ← Torna alla visualizzazione normale
+          Torna alla visualizzazione normale
         </button>
         } @else {
         <div class="search-indicator">
@@ -563,6 +564,7 @@ export class Dashboard implements OnInit {
 
   userLogin = inject(UserService);
   veicleService = inject(VeicleService);
+  cacheService = inject(VehicleCacheService);
   veicleList = signal<Veicles[]>([]); // Veicoli della pagina corrente o risultati della ricerca
   allVeicles = signal<Veicles[]>([]); // Tutti i veicoli per la ricerca globale
   paginatedVeicles = signal<Veicles[]>([]); // Non più necessario ma mantenuto per compatibilità
@@ -658,11 +660,20 @@ export class Dashboard implements OnInit {
   loadVeicles(page?: number): void {
     const currentPageToLoad = page || this.currentPage();
 
-    // CONTROLLO PRE-CARICAMENTO: Se è pagina 1, controlla se ci sono dati dal login
+    // CONTROLLO NUOVO CACHE SYSTEM: Priorità al nuovo sistema di cache
     if (currentPageToLoad === 1) {
+      const cachedDashboardData = this.cacheService.getDashboardData();
+      if (cachedDashboardData) {
+        console.log('[DASHBOARD] Utilizzo dati dalla cache sincronizzata');
+        this.applyNewCachedData(cachedDashboardData);
+        this.preloadNextPage(1); // Pre-carica pagina 2
+        return;
+      }
+
+      // Fallback al sistema di precaricamento legacy
       const preloadedData = this.getPreloadedFirstPage();
       if (preloadedData) {
-        console.log('[DASHBOARD] Utilizzo dati pre-caricati dal login');
+        console.log('[DASHBOARD] Utilizzo dati pre-caricati dal login (legacy)');
         this.applyPreloadedData(preloadedData);
         this.preloadNextPage(1); // Pre-carica pagina 2
         return;
@@ -696,6 +707,11 @@ export class Dashboard implements OnInit {
 
       // SALVA IN CACHE per navigazioni future
       this.setCachedPage(currentPageToLoad, response.items);
+
+      // SALVA NELLA NUOVA CACHE se è la prima pagina
+      if (currentPageToLoad === 1) {
+        this.cacheService.saveDashboardData(response);
+      }
 
       console.log(
         '[DASHBOARD] Caricamento completato - Pagina:',
@@ -809,6 +825,33 @@ export class Dashboard implements OnInit {
   }
 
   /**
+   * Applica i dati dal nuovo sistema di cache sincronizzata
+   */
+  private applyNewCachedData(cachedData: any): void {
+    // Applica prima i dati dalla cache
+    this.veicleList.set(cachedData.items);
+    this.paginatedVeicles.set(cachedData.items);
+    this.currentPage.set(cachedData.page);
+    this.totalCount.set(cachedData.totalCount);
+    this.totalPages.set(cachedData.totalPages);
+
+    // Aggiorna con i dati MQTT più recenti
+    const mqttPositions = this.mqttService.positionVeiclesList();
+    this.updateVehicleStatesFromMqtt(mqttPositions);
+
+    // Salva anche nella cache del nuovo sistema per ottimizzare
+    this.cacheService.saveDashboardData({
+      page: cachedData.page,
+      items: this.veicleList(),
+      totalCount: cachedData.totalCount,
+      totalPages: cachedData.totalPages,
+      pageSize: this.itemsPerPage,
+    });
+
+    console.log('[DASHBOARD] Dati da cache sincronizzata applicati con successo');
+  }
+
+  /**
    * PRE-CARICAMENTO SEQUENZIALE: Se in pagina 1 → pre-carica pagina 2, etc.
    * @param currentPage - Pagina corrente
    */
@@ -898,7 +941,7 @@ export class Dashboard implements OnInit {
   }
 
   // campi da nascondere nella tabella
-  private hiddenFields: (keyof Veicles)[] = ['id', 'lastPosition']; // campi nascosti
+  private hiddenFields: (keyof Veicles)[] = ['id', 'createdAt', 'lastPosition']; // campi nascosti
 
   /**
    * Recupera le chiavi visibili del veicolo escludendo quelle nascoste

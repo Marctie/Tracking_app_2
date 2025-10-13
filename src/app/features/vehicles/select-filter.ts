@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { GeneralMap } from './general-map';
+import { VeicleService } from '../../services/veicle-service';
+import { MyMqttService } from '../../services/mymqtt-service';
 
 @Component({
   selector: 'app-select-filter',
@@ -41,7 +43,11 @@ import { GeneralMap } from './general-map';
             <option value="model">Modello</option>
           </select>
         </div>
-        <button class="btn" (click)="goMapGen()">Vai alla mappa completa dei veicoli</button>
+        <button class="btn" (click)="goMapGen()" [disabled]="isMapLoading()">
+          @if (isMapLoading()) {
+          <span class="btn-loading">⟳</span> Preparazione mappa... } @else { Vai alla mappa completa
+          dei veicoli }
+        </button>
 
         <!-- <div class="status-indicator" [class.searching]="isSearching()">
           <span *ngIf="!isSearching() && searchResults()">
@@ -205,6 +211,25 @@ import { GeneralMap } from './general-map';
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
 
+    .btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+      opacity: 0.6;
+    }
+
+    /* Stile per il caricamento nel bottone */
+    .btn-loading {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+      margin-right: 5px;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     /* Responsiveness per dispositivi mobili */
     @media (max-width: 768px) {
       .filter-wrap {
@@ -254,8 +279,16 @@ import { GeneralMap } from './general-map';
 export class SelectFilter implements OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
+  // Signal per gestire lo stato di caricamento
+  isMapLoading = signal(false); // Stato caricamento per navigazione alla mappa
 
   router = inject(Router);
+  veicleService = inject(VeicleService);
+  mqttService = inject(MyMqttService);
+
+  // Cache per il precaricamento
+  private isPreloading = false;
+  private preloadTimestamp: number | null = null;
 
   // Signals per lo stato del componente
   valueOption = '';
@@ -282,6 +315,11 @@ export class SelectFilter implements OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    // Reset dello stato di loading per sicurezza
+    this.isMapLoading.set(false);
+    // Pulizia cache precaricamento
+    this.isPreloading = false;
+    this.preloadTimestamp = null;
   }
 
   // Metodo chiamato quando cambia il testo di ricerca
@@ -346,7 +384,70 @@ export class SelectFilter implements OnDestroy {
 
   // Navigazione alla mappa generale
   goMapGen(): void {
-    this.router.navigate(['/generalmap']);
+    console.log('Navigazione verso mappa generale - Avvio precaricamento');
+
+    // Evita click multipli
+    if (this.isMapLoading()) {
+      console.log('Precaricamento già in corso...');
+      return;
+    }
+
+    this.isMapLoading.set(true);
+
+    // Avvia il precaricamento dei dati durante il timeout
+    this.preloadMapData()
+      .then(() => {
+        console.log('Precaricamento completato - Navigazione verso mappa');
+        this.router.navigate(['/generalmap']);
+        // Il loading si resetterà automaticamente al cambio route
+      })
+      .catch((error) => {
+        console.warn('Errore nel precaricamento, ma procedo comunque:', error);
+        // Anche in caso di errore, naviga comunque dopo il timeout minimo
+        setTimeout(() => {
+          this.router.navigate(['/generalmap']);
+        }, 500);
+      });
+  }
+
+  /**
+   * Precarica i dati necessari per la mappa generale
+   */
+  private async preloadMapData(): Promise<void> {
+    // Evita precaricamenti duplicati recenti (cache di 30 secondi)
+    const now = Date.now();
+    if (this.isPreloading || (this.preloadTimestamp && now - this.preloadTimestamp < 30000)) {
+      console.log('[PRELOAD] Utilizzo cache precaricamento recente');
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Minimo delay per UX
+      return;
+    }
+
+    try {
+      this.isPreloading = true;
+      console.log('[PRELOAD] Inizio precaricamento dati mappa...');
+
+      // Precarica tutti i veicoli dal server
+      const vehiclesPromise = this.veicleService.getAllVeicles().toPromise();
+
+      // Attendi un minimo di 500ms per dare feedback visivo all'utente
+      const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Esegui entrambe le operazioni in parallelo
+      const [vehiclesResponse] = await Promise.all([vehiclesPromise, minDelayPromise]);
+
+      if (vehiclesResponse && vehiclesResponse.items) {
+        console.log(`[PRELOAD] Precaricati ${vehiclesResponse.items.length} veicoli`);
+        this.preloadTimestamp = now;
+
+        // I dati sono ora nella cache HTTP di Angular e saranno disponibili
+        // immediatamente quando la mappa generale li richiederà
+      }
+    } catch (error) {
+      console.error('[PRELOAD] Errore durante il precaricamento:', error);
+      throw error;
+    } finally {
+      this.isPreloading = false;
+    }
   }
 }
 
