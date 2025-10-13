@@ -143,9 +143,9 @@ button{font:inherit}
       margin-bottom: 15px;
     }
 
-    /* Contenitore della mappa con dimensioni fisse */
+/* contenitore della mappa  */
     #map { 
-      height: 370px; 
+      height: 61vh; 
       width: 100%;
       border: 2px solid #007bff;
       border-radius: 8px;

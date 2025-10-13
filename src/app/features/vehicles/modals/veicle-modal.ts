@@ -8,16 +8,19 @@ import {
   ViewChild,
   ElementRef,
   input,
+  signal,
 } from '@angular/core';
 import { Veicles } from '../../../models/veicles';
+import { VeiclePosition } from '../../../models/veicle-position';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { MyMqttService } from '../../../services/mymqtt-service';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-veiclemodal',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-overlay" (click)="onOverlayClick($event)">
       <div class="alert-container" (click)="$event.stopPropagation()">
@@ -42,13 +45,60 @@ import { Router } from '@angular/router';
               <strong>Creato il:</strong> {{ formatDate(selectedVeicle()!.createdAt) }}
             </div>
             <div style="text-align: center;">
-              @if(selectedVeicle()?.lastPosition){
-              <strong>Ultima posizione:</strong>
-              <div class="position-info">
-                Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
-                Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
+              <!-- Dropdown Storico Posizioni -->
+              <div class="position-history-section">
+                <h4>Storico Posizioni</h4>
+                <select
+                  class="position-history-dropdown"
+                  [(ngModel)]="selectedHistoryPosition"
+                  (change)="onPositionHistoryChange()"
+                >
+                  <option value="">-- Seleziona una posizione dal registro --</option>
+                  @for (position of positionHistory(); track position.timestamp.getTime()) {
+                  <option [value]="position.timestamp.getTime()">
+                    {{ formatPositionHistoryOption(position) }}
+                  </option>
+                  }
+                </select>
+                @if (selectedHistoryPosition) {
+                <div class="selected-position-details">
+                  @for (position of positionHistory(); track position.timestamp.getTime()) { @if
+                  (position.timestamp.getTime().toString() === selectedHistoryPosition) {
+                  <div class="history-position-info">
+                    <div>
+                      <strong>Data & Ora</strong>
+                      <span>{{ formatDate(position.timestamp) }}</span>
+                      <span class="time-ago">{{ getTimeAgo(position.timestamp) }}</span>
+                    </div>
+                    <div>
+                      <strong>Coordinate GPS</strong>
+                      <span>{{ position.latitude }}, {{ position.longitude }}</span>
+                    </div>
+                    <div>
+                      <strong>Velocità</strong>
+                      <span>{{ position.speed || 0 }} km/h</span>
+                    </div>
+                    @if (position.heading !== undefined) {
+                    <div>
+                      <strong>Direzione</strong>
+                      <span>{{ position.heading }}°</span>
+                    </div>
+                    }
+                  </div>
+                  } }
+                </div>
+                <br />
+
+                } @if(selectedVeicle()?.lastPosition){
+                <strong>Ultima posizione:</strong>
+                <div class="position-info">
+                  Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
+                  Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
+                </div>
+                }
               </div>
-              }
+              <br />
+
               <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna posizione</button>
             </div>
             }
@@ -146,8 +196,8 @@ tr {
   font-family: var(--font-family, Inter, 'Segoe UI', Roboto, Arial, sans-serif);
   box-sizing: border-box;
   overflow-y: auto;
-  
-  /* Ombra elegante */
+
+  //ombra 
   box-shadow: 
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 10px 20px -5px rgba(0, 0, 0, 0.1);
@@ -191,12 +241,14 @@ tr {
   border-radius: 12px;
   padding: 1rem;
   box-sizing: border-box;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   color: #334155;
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Dettagli a destra */
@@ -257,6 +309,107 @@ tr {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Stili per lo storico posizioni - Tema coerente con il progetto */
+.position-history-section {
+  padding:10px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.position-history-section h4 {
+  color: var(--accent, #2563eb);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.position-history-section h4:before {
+  font-size: 1.2rem;
+}
+
+.position-history-dropdown {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--card-bg, #fff);
+  color: var(--text, #0f172a);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+}
+
+.position-history-dropdown:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.1);
+}
+
+.position-history-dropdown:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.selected-position-details {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--card-bg, #fff);
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  border-left: 4px solid #2563eb;
+}
+
+.selected-position-details:hover {
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.history-position-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.history-position-info > div {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.history-position-info strong {
+  color: var(--accent, #2563eb);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-position-info span {
+  color: var(--text, #0f172a);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.history-position-info .time-ago {
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .alert-container {
@@ -270,6 +423,63 @@ tr {
   
   .map-container, .details-container {
     min-height: 300px;
+  }
+}
+
+/* Media query specifica per 752px e schermi simili - Mantiene la mappa sempre visibile */
+@media (max-width: 752px) {
+  .map-container {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 280px !important;
+    height: auto !important;
+    flex: none !important;
+    width: 100% !important;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .map-container #map {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 250px !important;
+  }
+}
+
+/* Media query specifica per schermi medi - Mantiene la mappa visibile */
+@media (max-width: 768px) and (min-width: 680px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .alert-container {
+    padding: 1rem;
+    max-height: 95vh;
+  }
+  
+  .alert-title {
+    font-size: 1.25rem;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .map-container {
+    min-height: 450px !important;
+    flex: none;
+    width: 100%;
+    order: 1;
+  }
+  
+  .details-container {
+    min-height: auto;
+    order: 2;
   }
 }
 
@@ -294,6 +504,11 @@ tr {
   
   .map-container, .details-container {
     min-height: 250px;
+  }
+  
+  /* Responsive per storico posizioni */
+  .history-position-info {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -328,6 +543,10 @@ export class VeicleModal implements OnInit, AfterViewInit {
   // Servizi necessari
   private mqttService = inject(MyMqttService);
 
+  // Proprietà per lo storico posizioni
+  positionHistory = signal<VeiclePosition[]>([]);
+  selectedHistoryPosition: string = '';
+
   // Elementi della mappa
   @ViewChild('leafletMap')
   private mapElement: ElementRef | undefined;
@@ -336,6 +555,8 @@ export class VeicleModal implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     console.log('[MODAL] Inizializzazione modal per veicolo:', this.selectedVeicle()?.licensePlate);
+    // Carica lo storico delle posizioni
+    this.loadPositionHistory();
   }
 
   ngAfterViewInit(): void {
@@ -610,5 +831,122 @@ export class VeicleModal implements OnInit, AfterViewInit {
     console.warn(
       '[MODAL] Errore: Impossibile chiudere la modale - output hideModal non disponibile'
     );
+  }
+
+  /**
+   * Carica lo storico delle posizioni del veicolo
+   */
+  private loadPositionHistory(): void {
+    const vehicle = this.selectedVeicle();
+    if (!vehicle) return;
+
+    // Simula il caricamento dello storico posizioni
+    // In un'implementazione reale, questo dovrebbe chiamare un servizio per ottenere lo storico
+    const now = new Date();
+    const mockHistory: VeiclePosition[] = [
+      {
+        vehicleId: vehicle.id,
+        latitude: vehicle.lastPosition?.latitude || 41.9028,
+        longitude: vehicle.lastPosition?.longitude || 12.4964,
+        speed: vehicle.lastPosition?.speed || 0,
+        heading: vehicle.lastPosition?.heading || 0,
+        timestamp: now,
+        status: vehicle.status || 'active',
+      },
+      // Aggiungi posizioni simulate per dimostrare la funzionalità
+      {
+        vehicleId: vehicle.id,
+        latitude: (vehicle.lastPosition?.latitude || 41.9028) + 0.001,
+        longitude: (vehicle.lastPosition?.longitude || 12.4964) + 0.001,
+        speed: 45,
+        heading: 90,
+        timestamp: new Date(now.getTime() - 1800000), // 30 minuti fa
+        status: 'active',
+      },
+      {
+        vehicleId: vehicle.id,
+        latitude: (vehicle.lastPosition?.latitude || 41.9028) + 0.002,
+        longitude: (vehicle.lastPosition?.longitude || 12.4964) + 0.002,
+        speed: 60,
+        heading: 180,
+        timestamp: new Date(now.getTime() - 3600000), // 1 ora fa
+        status: 'active',
+      },
+      {
+        vehicleId: vehicle.id,
+        latitude: (vehicle.lastPosition?.latitude || 41.9028) + 0.003,
+        longitude: (vehicle.lastPosition?.longitude || 12.4964) + 0.003,
+        speed: 30,
+        heading: 270,
+        timestamp: new Date(now.getTime() - 7200000), // 2 ore fa
+        status: 'active',
+      },
+    ];
+
+    // Ordina per timestamp decrescente (più recente prima)
+    mockHistory.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    this.positionHistory.set(mockHistory);
+    console.log('[MODAL] Storico posizioni caricato:', mockHistory.length, 'posizioni');
+  }
+
+  /**
+   * Gestisce il cambio di selezione nello storico posizioni
+   */
+  onPositionHistoryChange(): void {
+    if (!this.selectedHistoryPosition) return;
+
+    const selectedPosition = this.positionHistory().find(
+      (pos) => pos.timestamp.getTime().toString() === this.selectedHistoryPosition
+    );
+
+    if (selectedPosition && this.map) {
+      // Centra la mappa sulla posizione selezionata
+      this.map.setView([selectedPosition.latitude, selectedPosition.longitude], 15);
+
+      // Pulisce i marker esistenti
+      this.markers.forEach((marker) => this.map.removeLayer(marker));
+      this.markers = [];
+
+      // Aggiunge un marker per la posizione selezionata
+      const marker = L.marker([selectedPosition.latitude, selectedPosition.longitude])
+        .addTo(this.map)
+        .bindPopup(
+          `
+          <strong>Posizione Storica</strong><br>
+          <strong>Data:</strong> ${this.formatDate(new Date(selectedPosition.timestamp))}<br>
+          <strong>Velocità:</strong> ${selectedPosition.speed || 0} km/h<br>
+          <strong>Direzione:</strong> ${selectedPosition.heading || 0}°
+        `
+        )
+        .openPopup();
+
+      this.markers.push(marker);
+    }
+  }
+
+  /**
+   * Formatta l'opzione per la dropdown dello storico
+   */
+  formatPositionHistoryOption(position: VeiclePosition): string {
+    const timeAgo = this.getTimeAgo(position.timestamp.getTime());
+    return `${this.formatDate(position.timestamp)} (${timeAgo})`;
+  }
+
+  /**
+   * Calcola quanto tempo fa è stata registrata una posizione
+   */
+  getTimeAgo(timestamp: Date | number): string {
+    const now = Date.now();
+    const time = timestamp instanceof Date ? timestamp.getTime() : timestamp;
+    const diff = now - time;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (days > 0) return `${days} giorni fa`;
+    if (hours > 0) return `${hours} ore fa`;
+    if (minutes > 0) return `${minutes} minuti fa`;
+    return 'Ora';
   }
 }

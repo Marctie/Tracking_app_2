@@ -9,3 +9,9 @@ export interface Veicles {
       createdAt:Date ;
       lastPosition:VeiclePosition;
 }
+
+export interface VeicleStatus {
+  vehicleId: number;
+  status: string;
+  timestamp: string | number;
+}
