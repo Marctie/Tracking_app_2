@@ -29,6 +29,18 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
             <button class="mqtt-refresh-btn primary" (click)="refreshAllVehiclesWithMqtt()">
               Aggiorna Posizioni
             </button>
+            <div class="map-view-switch">
+              <label class="switch-label">
+                <input
+                  type="checkbox"
+                  class="switch-input"
+                  [checked]="isSatelliteView()"
+                  (change)="toggleMapView()"
+                />
+                <span class="switch-slider"></span>
+                <span class="switch-text">{{ isSatelliteView() ? 'Satellite' : 'Stradale' }}</span>
+              </label>
+            </div>
             <button class="mqtt-refresh-btn" (click)="backToDashboard()">
               Torna alla Dashboard
             </button>
@@ -92,6 +104,22 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
       <div class="map-wrapper">
         <div id="map" class="leaflet-map"></div>
       </div>
+
+      <!-- Toast Notifiche -->
+      @if (showToast()) {
+      <div
+        class="toast-notification"
+        [class.toast-success]="toastType() === 'success'"
+        [class.toast-error]="toastType() === 'error'"
+      >
+        <div class="toast-content">
+          <span class="toast-icon">
+            {{ toastType() === 'success' ? '✓' : '✗' }}
+          </span>
+          <span class="toast-message">{{ toastMessage() }}</span>
+        </div>
+      </div>
+      }
     </div>
   `,
   styles: `
@@ -416,6 +444,88 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
       }
     }
 
+    /* SWITCH PER VISTA MAPPA NORMALE/SATELLITE */
+    .map-view-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .switch-input {
+      position: relative;
+      width: 50px;
+      height: 24px;
+      appearance: none;
+      background: #e9ecef;
+      border-radius: 12px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid #dee2e6;
+    }
+
+    .switch-input:checked {
+      background: #007bff;
+      border-color: #0056b3;
+    }
+
+    .switch-input::before {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .switch-input:checked::before {
+      transform: translateX(26px);
+    }
+
+    .switch-text {
+      min-width: 60px;
+      color: #495057;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .switch-label:hover .switch-text {
+      color: #007bff;
+    }
+
+    /* Responsivo per mobile */
+    @media (max-width: 768px) {
+      .control-buttons {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+      }
+
+      .map-view-switch {
+        justify-content: center;
+      }
+
+      .switch-label {
+        justify-content: center;
+        font-size: 13px;
+      }
+    }
+
     /* === EXTRA SMALL DEVICES === */
     @media (max-width: 320px) {
       .map-header h2 {
@@ -440,12 +550,102 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
         font-size: 10px;
       }
     }
+
+    /* === TOAST NOTIFICHE === */
+    .toast-notification {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 9999;
+      min-width: 300px;
+      max-width: 400px;
+      padding: 0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideInToast 0.3s ease-out;
+      pointer-events: auto;
+    }
+
+    .toast-success {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      border-left: 4px solid #155724;
+    }
+
+    .toast-error {
+      background: linear-gradient(135deg, #dc3545, #e74c3c);
+      border-left: 4px solid #721c24;
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      color: white;
+    }
+
+    .toast-icon {
+      font-size: 20px;
+      font-weight: bold;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+    }
+
+    .toast-message {
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    @keyframes slideInToast {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Responsivo per mobile */
+    @media (max-width: 768px) {
+      .toast-notification {
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+      }
+
+      .toast-content {
+        padding: 12px 16px;
+      }
+
+      .toast-message {
+        font-size: 13px;
+      }
+    }
   `,
 })
 export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = []; // Array per tenere traccia dei marker
   router = inject(Router);
+
+  // Layer management per switch mappa normale/satellite
+  private currentBaseLayer!: L.TileLayer;
+  private streetLayer!: L.TileLayer;
+  private satelliteLayer!: L.TileLayer;
+  isSatelliteView = signal(false); // Signal per gestire lo stato della vista
+
   // Input per ricevere il veicolo selezionato dal componente padre
   selectedVeicle = input<Veicles>();
 
@@ -458,6 +658,11 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
   private cacheService = inject(VehicleCacheService); // Servizio per cache condivisa
   veicleList = signal<Veicles[]>([]);
+
+  // Signal per gestire le notifiche toast
+  showToast = signal(false);
+  toastMessage = signal('');
+  toastType = signal<'success' | 'error'>('success');
 
   // Mappa dei colori per gli stati dei veicoli
   private statusColorMap: { [key: string]: string } = {
@@ -820,12 +1025,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     // Centra la mappa su Roma con zoom fisso
     this.map = L.map('map').setView([41.9028, 12.4964], 12);
 
-    // Aggiunge il layer delle tile di OpenStreetMap
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 15, // zoom massimo
-      minZoom: 4, // zoom minimo
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+    // Inizializza i layer per normale e satellite
+    this.initMapLayers();
 
     // Aggiunge i marker dei veicoli
     if (this.veicleList().length > 0) {
@@ -1135,8 +1336,23 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       'totali'
     );
 
-    // Aggiorna i marker sulla mappa preservando la vista corrente
-    this.addVeicleMarkers(true);
+    // Mostra notifica toast basata sui risultati
+    try {
+      // Aggiorna i marker sulla mappa preservando la vista corrente
+      this.addVeicleMarkers(true);
+
+      // Determina il messaggio e tipo di notifica
+      if (updatedCount > 0) {
+        const message = `Posizioni aggiornate: ${updatedCount} veicoli`;
+        this.showToastNotification(message, 'success');
+      } else {
+        const message = 'Nessun aggiornamento disponibile';
+        this.showToastNotification(message, 'success');
+      }
+    } catch (error) {
+      console.error('[GENERAL-MAP] Errore durante aggiornamento marker:', error);
+      this.showToastNotification("Errore durante l'aggiornamento", 'error');
+    }
   }
 
   /**
@@ -1277,5 +1493,83 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.router.navigate(['/dashboard']);
+  }
+
+  /**
+   * Inizializza i layer per la mappa (normale e satellite)
+   */
+  private initMapLayers(): void {
+    // Layer stradale (OpenStreetMap)
+    this.streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      minZoom: 4,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+
+    // Layer satellite (Esri World Imagery)
+    this.satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 18,
+        minZoom: 4,
+        attribution:
+          '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+      }
+    );
+
+    // Imposta il layer predefinito (stradale)
+    this.currentBaseLayer = this.streetLayer;
+    this.currentBaseLayer.addTo(this.map);
+
+    console.log('[GENERAL-MAP] Layer mappa inizializzati - Modalità stradale attiva');
+  }
+
+  /**
+   * Cambia la vista della mappa tra normale e satellite
+   */
+  toggleMapView(): void {
+    // Rimuove il layer attuale
+    this.map.removeLayer(this.currentBaseLayer);
+
+    // Cambia il layer e aggiorna lo stato
+    if (this.isSatelliteView()) {
+      // Passa alla vista stradale
+      this.currentBaseLayer = this.streetLayer;
+      this.isSatelliteView.set(false);
+      console.log('[GENERAL-MAP] Cambio a vista stradale');
+    } else {
+      // Passa alla vista satellite
+      this.currentBaseLayer = this.satelliteLayer;
+      this.isSatelliteView.set(true);
+      console.log('[GENERAL-MAP] Cambio a vista satellite');
+    }
+
+    // Aggiunge il nuovo layer
+    this.currentBaseLayer.addTo(this.map);
+  }
+
+  /**
+   * Mostra una notifica toast
+   */
+  private showToastNotification(
+    message: string,
+    type: 'success' | 'error',
+    duration: number = 3000
+  ): void {
+    this.toastMessage.set(message);
+    this.toastType.set(type);
+    this.showToast.set(true);
+
+    // Auto-nascondi dopo la durata specificata
+    setTimeout(() => {
+      this.hideToastNotification();
+    }, duration);
+  }
+
+  /**
+   * Nasconde la notifica toast
+   */
+  private hideToastNotification(): void {
+    this.showToast.set(false);
   }
 }
