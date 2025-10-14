@@ -3,7 +3,7 @@ import { ConfigService } from './services/config.service';
 
 /**
  * Factory function per inizializzare la configurazione
- * prima dell'avvio dell'applicazione
+ 
  */
 export function configInitializerFactory(configService: ConfigService): () => Promise<any> {
   return (): Promise<any> => {
@@ -20,7 +20,7 @@ export function configInitializerFactory(configService: ConfigService): () => Pr
         },
         error: (error) => {
           console.error('[CONFIG-INITIALIZER] Errore nel caricamento configurazione:', error);
-          // Non blocchiamo l'app anche se il config fallisce
+          //
           resolve(null);
         },
       });

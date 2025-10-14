@@ -36,12 +36,12 @@ export interface AppConfig {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ConfigService {
   private configSubject = new BehaviorSubject<AppConfig | null>(null);
   public config$ = this.configSubject.asObservable();
-  
+
   private defaultConfig: AppConfig = {
     apiBaseUrl: 'http://localhost:3000/api',
     mqttBrokerUrl: 'ws://localhost:8083/mqtt',
@@ -50,27 +50,27 @@ export class ConfigService {
     features: {
       realTimeUpdates: true,
       satelliteView: true,
-      autoRefreshInterval: 5000
+      autoRefreshInterval: 5000,
     },
     api: {
       endpoints: {
         vehicles: '/vehicles',
         positions: '/positions',
         users: '/users',
-        auth: '/auth'
+        auth: '/auth',
       },
       timeout: 30000,
-      retryAttempts: 3
+      retryAttempts: 3,
     },
     map: {
       defaultCenter: {
         latitude: 41.9028,
-        longitude: 12.4964
+        longitude: 12.4964,
       },
       defaultZoom: 12,
       maxZoom: 18,
-      minZoom: 4
-    }
+      minZoom: 4,
+    },
   };
 
   constructor(private http: HttpClient) {}
@@ -81,12 +81,15 @@ export class ConfigService {
    */
   loadConfig(): Observable<AppConfig> {
     return this.http.get<AppConfig>('/assets/config.json').pipe(
-      tap(config => {
+      tap((config) => {
         console.log('[CONFIG-SERVICE] Configurazione caricata:', config);
         this.configSubject.next(config);
       }),
-      catchError(error => {
-        console.error('[CONFIG-SERVICE] Errore nel caricamento configurazione, uso default:', error);
+      catchError((error) => {
+        console.error(
+          '[CONFIG-SERVICE] Errore nel caricamento configurazione, uso default:',
+          error
+        );
         this.configSubject.next(this.defaultConfig);
         return of(this.defaultConfig);
       })
@@ -117,7 +120,16 @@ export class ConfigService {
    */
   getApiUrl(endpoint: keyof AppConfig['api']['endpoints']): string {
     const config = this.getConfig();
-    return `${config.apiBaseUrl}${config.api.endpoints[endpoint]}`;
+    const baseUrl = config.apiBaseUrl.endsWith('/')
+      ? config.apiBaseUrl.slice(0, -1)
+      : config.apiBaseUrl;
+    const endpointPath = config.api.endpoints[endpoint].startsWith('/')
+      ? config.api.endpoints[endpoint]
+      : '/' + config.api.endpoints[endpoint];
+
+    const fullUrl = `${baseUrl}${endpointPath}`;
+    console.log(`[CONFIG-SERVICE] URL costruito per ${endpoint}:`, fullUrl);
+    return fullUrl;
   }
 
   /**

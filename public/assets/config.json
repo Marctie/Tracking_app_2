@@ -1,35 +1,20 @@
 {
-  "apiBaseUrl": "http://10.0.90.9/stagepeluso/api",
+  "apiBaseUrl": "http://10.0.90.9/Stage/TrackingApp",
   "mqttBrokerUrl": "wss://rabbitmq.test.intellitronika.com/ws",
-  "environment": "development",
   "appVersion": "1.0.0",
   "features": {
     "realTimeUpdates": true,
-    "satelliteView": true,
     "autoRefreshInterval": 5000
   },
   "api": {
     "endpoints": {
-      "vehicles": "/Vehicles",
-      "positions": "/positions", 
-      "users": "/users",
-      "auth": "/Auth"
+      "vehicles": "/api/Vehicles",
+      "positions": "/api/positions", 
+      "users": "/api/users",
+      "auth": "/api/Auth"
     },
     "timeout": 30000,
     "retryAttempts": 3
-  },
-  "mqtt": {
-    "hostname": "rabbitmq.test.intellitronika.com",
-    "port": 443,
-    "path": "/ws",
-    "protocol": "wss",
-    "username": "intellitronika",
-    "password": "intellitronika",
-    "keepalive": 120,
-    "topics": {
-      "vehicleStatus": "vehicles/+/status",
-      "vehiclePosition": "vehicles/+/position"
-    }
   },
   "map": {
     "defaultCenter": {
