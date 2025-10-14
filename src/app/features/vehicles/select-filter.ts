@@ -396,6 +396,16 @@ export class SelectFilter implements OnDestroy {
     console.log('[SELECT-FILTER] Search cleared');
   }
 
+  // Resets all filters to default state (called from dashboard)
+  resetFilters(): void {
+    this.searchText.set('');
+    this.valueOption = '';
+    this.isSearching.set(false);
+    this.searchResults.set(null);
+
+    console.log('[SELECT-FILTER] All filters reset to default');
+  }
+
   // Updates number of results (called by dashboard)
   updateSearchResults(count: number): void {
     this.searchResults.set(count);

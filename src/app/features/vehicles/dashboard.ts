@@ -4,6 +4,7 @@ import {
   OnChanges,
   OnInit,
   SimpleChanges,
+  ViewChild,
   computed,
   effect,
   inject,
@@ -52,7 +53,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
     <div class="dashboard-container" (click)="onClickOutsideModal()">
       <h1>Welcome Mr. {{ userLogin.firstName() || getStoredUserName() }}</h1>
       <div>
-        <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
+        <app-select-filter #selectFilter (filterParam)="onFilterBy($event)"></app-select-filter>
       </div>
 
       <div class="table-wrapper">
@@ -640,6 +641,8 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   `,
 })
 export class Dashboard implements OnInit {
+  @ViewChild('selectFilter') selectFilterComponent!: SelectFilter;
+
   showModal = signal(false);
   messageStorage = {};
 
@@ -1274,11 +1277,21 @@ export class Dashboard implements OnInit {
 
   // Torna alla paginazione normale
   resetToNormalPagination(): void {
+    console.log('[DASHBOARD] Resetting to normal pagination');
+
     this.isGlobalSearchActive.set(false);
     this.isSearching.set(false);
     this.searchError.set(null);
     this.allVeicles.set([]);
     this.updateFilterComponent(null);
+
+    // Reset dei filtri nel componente select-filter
+    if (this.selectFilterComponent) {
+      console.log('[DASHBOARD] Resetting filters in select-filter component');
+      this.selectFilterComponent.resetFilters();
+    } else {
+      console.warn('[DASHBOARD] selectFilterComponent not found');
+    }
 
     // Ricarica la pagina corrente
     setTimeout(() => {
