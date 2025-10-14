@@ -553,7 +553,7 @@ export class Dashboard implements OnInit {
   currentPage = signal(1);
   itemsPerPage = 10;
   totalPages = signal(0);
-  totalCount = signal(0); // Nuovo: conteggio totale dal server
+  totalCount = signal(0); //  conteggio totale dal server
 
   // SISTEMA CACHE per pre-caricamento sequenziale
   private pageCache = new Map<number, Veicles[]>(); // Cache delle pagine caricate
@@ -612,7 +612,7 @@ export class Dashboard implements OnInit {
       );
     });
 
-    // NUOVO: Effect per aggiornamenti live degli stati via MQTT
+    // Effect per aggiornamenti live degli stati via MQTT
     effect(() => {
       const mqttPositions = this.mqttService.positionVeiclesList();
       if (mqttPositions.length > 0 && this.veicleList().length > 0) {
@@ -654,13 +654,12 @@ export class Dashboard implements OnInit {
   /**
    * Carica la lista dei veicoli dal servizio con paginazione lato server
    * Utilizza cache per navigazione istantanea e pre-carica pagina successiva
-   * NUOVO: Utilizza dati pre-caricati dal login se disponibili per pagina 1
+   *  Utilizza dati pre-caricati dal login se disponibili per pagina 1
    * @param page - Numero di pagina da caricare (default: pagina corrente)
    */
   loadVeicles(page?: number): void {
     const currentPageToLoad = page || this.currentPage();
 
-    // CONTROLLO NUOVO CACHE SYSTEM: Priorità al nuovo sistema di cache
     if (currentPageToLoad === 1) {
       const cachedDashboardData = this.cacheService.getDashboardData();
       if (cachedDashboardData) {
@@ -670,7 +669,6 @@ export class Dashboard implements OnInit {
         return;
       }
 
-      // Fallback al sistema di precaricamento legacy
       const preloadedData = this.getPreloadedFirstPage();
       if (preloadedData) {
         console.log('[DASHBOARD] Utilizzo dati pre-caricati dal login (legacy)');
@@ -1198,7 +1196,7 @@ export class Dashboard implements OnInit {
     }
   }
 
-  // NUOVO: Metodo per aggiornare gli stati dei veicoli in tempo reale via MQTT
+  //  Metodo per aggiornare gli stati dei veicoli in tempo reale via MQTT
   private updateVehicleStatesFromMqtt(mqttPositions: any[]): void {
     const currentVehicles = this.veicleList();
     let updatedCount = 0;

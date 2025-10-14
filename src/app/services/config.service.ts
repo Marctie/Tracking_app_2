@@ -1,39 +1,9 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-
-export interface AppConfig {
-  apiBaseUrl: string;
-  mqttBrokerUrl: string;
-  environment: string;
-  appVersion: string;
-  features: {
-    realTimeUpdates: boolean;
-    satelliteView: boolean;
-    autoRefreshInterval: number;
-  };
-  api: {
-    endpoints: {
-      vehicles: string;
-      positions: string;
-      users: string;
-      auth: string;
-    };
-    timeout: number;
-    retryAttempts: number;
-  };
-  map: {
-    defaultCenter: {
-      latitude: number;
-      longitude: number;
-    };
-    defaultZoom: number;
-    maxZoom: number;
-    minZoom: number;
-  };
-}
+import { AppConfig } from '../models/appconfig';
 
 @Injectable({
   providedIn: 'root',
@@ -45,11 +15,8 @@ export class ConfigService {
   private defaultConfig: AppConfig = {
     apiBaseUrl: 'http://localhost:3000/api',
     mqttBrokerUrl: 'ws://localhost:8083/mqtt',
-    environment: 'development',
-    appVersion: '1.0.0',
     features: {
       realTimeUpdates: true,
-      satelliteView: true,
       autoRefreshInterval: 5000,
     },
     api: {
@@ -58,6 +25,9 @@ export class ConfigService {
         positions: '/positions',
         users: '/users',
         auth: '/auth',
+        streamStart: '/streaming/start',
+        streamStop: '/streaming/stop',
+        streamStatus: '/streaming/status',
       },
       timeout: 30000,
       retryAttempts: 3,
@@ -77,7 +47,7 @@ export class ConfigService {
 
   /**
    * Carica la configurazione dal file config.json
-   * Questo metodo deve essere chiamato prima di inizializzare l'app
+   *  inizializzare l'app
    */
   loadConfig(): Observable<AppConfig> {
     return this.http.get<AppConfig>('/assets/config.json').pipe(
@@ -97,7 +67,7 @@ export class ConfigService {
   }
 
   /**
-   * Ottieni la configurazione corrente (sincrono)
+   * Ottieni la configurazione corrente
    */
   getConfig(): AppConfig {
     const config = this.configSubject.value;

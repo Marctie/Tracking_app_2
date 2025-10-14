@@ -14,7 +14,6 @@ export function configInitializerFactory(configService: ConfigService): () => Pr
         next: (config) => {
           console.log(
             '[CONFIG-INITIALIZER] Configurazione caricata con successo:',
-            config.environment
           );
           resolve(config);
         },

@@ -26,6 +26,18 @@ import { ConfigService } from '../../services/config.service';
         <h2>Mappa Veicoli in Tempo Reale</h2>
         <div class="header-controls">
           <div class="control-buttons">
+            <div class="map-view-selector">
+              <label class="view-selector-label">Vista Mappa:</label>
+              <select
+                class="view-selector-dropdown"
+                [value]="currentMapView()"
+                (change)="changeMapView($event)"
+              >
+                <option value="street">Stradale</option>
+                <option value="satellite">Satellite</option>
+                <option value="cycle">Ciclabile</option>
+              </select>
+            </div>
             <button class="mqtt-refresh-btn primary" (click)="refreshAllVehiclesWithMqtt()">
               Aggiorna Posizioni
             </button>
@@ -306,6 +318,48 @@ import { ConfigService } from '../../services/config.service';
     .legend-color.online { background-color: #28a745; }
     .legend-color.offline { background-color: #dc3545; }
     .legend-color.maintenance { background-color: #ffc107; }
+
+    /* === SELETTORE VISTA MAPPA === */
+    .map-view-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .view-selector-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #495057;
+      white-space: nowrap;
+    }
+
+    .view-selector-dropdown {
+      padding: 4px 8px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background-color: white;
+      font-size: 12px;
+      color: #495057;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 100px;
+    }
+
+    .view-selector-dropdown:hover {
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .view-selector-dropdown:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
  
     /* === MAPPA FULLSCREEN === */
     .map-wrapper {
@@ -357,6 +411,21 @@ import { ConfigService } from '../../services/config.service';
  
       .control-buttons {
         gap: 5px;
+      }
+
+      .map-view-selector {
+        padding: 4px 8px;
+        gap: 6px;
+      }
+
+      .view-selector-label {
+        font-size: 11px;
+      }
+
+      .view-selector-dropdown {
+        font-size: 11px;
+        padding: 3px 6px;
+        min-width: 90px;
       }
     }
  
@@ -457,6 +526,17 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
   private configService = inject(ConfigService); // Servizio per configurazione dinamica
   veicleList = signal<Veicles[]>([]);
+  // Signal per gestire le notifiche toast
+  showToast = signal(false);
+  toastMessage = signal('');
+  toastType = signal<'success' | 'error'>('success');
+
+  // Layer management per vista mappa (stradale, satellite, ciclabile)
+  private currentBaseLayer!: L.TileLayer;
+  private streetLayer!: L.TileLayer;
+  private satelliteLayer!: L.TileLayer;
+  private cycleLayer!: L.TileLayer;
+  currentMapView = signal<'street' | 'satellite' | 'cycle'>('street');
 
   // Mappa dei colori per gli stati dei veicoli
   private statusColorMap: { [key: string]: string } = {
@@ -599,17 +679,98 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     // Centra la mappa su Roma con zoom fisso
     this.map = L.map('map').setView([41.9028, 12.4964], 12);
 
-    // Aggiunge il layer delle tile di OpenStreetMap
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 15, // zoom massimo
-      minZoom: 4, // zoom minimo
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+    // Inizializza i layer per le tre viste della mappa
+    this.initMapLayers();
 
     // Aggiunge i marker dei veicoli
     if (this.veicleList().length > 0) {
       this.addVeicleMarkers();
     }
+  }
+
+  /**
+   * Inizializza i layer per le tre viste della mappa
+   */
+  private initMapLayers(): void {
+    // Layer stradale (OpenStreetMap standard)
+    this.streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      minZoom: 4,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+
+    // Layer satellite (Esri World Imagery)
+    this.satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 18,
+        minZoom: 4,
+        attribution:
+          '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+      }
+    );
+
+    // Layer ciclabile (OpenCycleMap)
+    this.cycleLayer = L.tileLayer(
+      'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=YOUR_API_KEY',
+      {
+        maxZoom: 18,
+        minZoom: 4,
+        attribution:
+          '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }
+    );
+
+    // Se non hai una API key per Thunderforest, usa OpenStreetMap con stile alternativo
+    // Fallback a OpenStreetMap con overlay ciclabile
+    this.cycleLayer = L.tileLayer(
+      'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+      {
+        maxZoom: 18,
+        minZoom: 4,
+        attribution:
+          '&copy; <a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }
+    );
+
+    // Imposta il layer predefinito (stradale)
+    this.currentBaseLayer = this.streetLayer;
+    this.currentBaseLayer.addTo(this.map);
+
+    console.log('[GENERAL-MAP] Layer mappa inizializzati - Vista stradale attiva');
+  }
+
+  /**
+   * Cambia la vista della mappa in base alla selezione
+   */
+  changeMapView(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const newView = target.value as 'street' | 'satellite' | 'cycle';
+
+    // Rimuove il layer attuale
+    this.map.removeLayer(this.currentBaseLayer);
+
+    // Seleziona e aggiunge il nuovo layer
+    switch (newView) {
+      case 'street':
+        this.currentBaseLayer = this.streetLayer;
+        console.log('[GENERAL-MAP] Passaggio a vista stradale');
+        break;
+      case 'satellite':
+        this.currentBaseLayer = this.satelliteLayer;
+        console.log('[GENERAL-MAP] Passaggio a vista satellite');
+        break;
+      case 'cycle':
+        this.currentBaseLayer = this.cycleLayer;
+        console.log('[GENERAL-MAP] Passaggio a vista ciclabile');
+        break;
+    }
+
+    // Aggiunge il nuovo layer
+    this.currentBaseLayer.addTo(this.map);
+
+    // Aggiorna il signal
+    this.currentMapView.set(newView);
   }
 
   private addVeicleMarkers(preserveCurrentView: boolean = false): void {
@@ -812,6 +973,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    */
   public refreshAllVehiclesWithMqtt(): void {
     const statusesById = this.mqttService.statusById();
+    let updatedCount = 0;
     const updated = this.veicleList().map((v) => {
       const mqttPos = this.getMqttPositionFromService(v.id);
       const s = statusesById[v.id]?.status;
@@ -831,11 +993,49 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
           : v.lastPosition,
       };
     });
+    // Mostra notifica toast basata sui risultati
+    try {
+      // Aggiorna i marker sulla mappa preservando la vista corrente
+      this.addVeicleMarkers(true);
+
+      // Determina il messaggio e tipo di notifica
+      if (updatedCount > 0) {
+        const message = `Posizioni aggiornate: ${updatedCount} veicoli`;
+        this.showToastNotification(message, 'success');
+      } else {
+        const message = 'Nessun aggiornamento disponibile';
+        this.showToastNotification(message, 'success');
+      }
+    } catch (error) {
+      console.error('[GENERAL-MAP] Errore durante aggiornamento marker:', error);
+      this.showToastNotification("Errore durante l'aggiornamento", 'error');
+    }
 
     this.veicleList.set(updated);
     this.addVeicleMarkers(true);
   }
 
+  private showToastNotification(
+    message: string,
+    type: 'success' | 'error',
+    duration: number = 3000
+  ): void {
+    this.toastMessage.set(message);
+    this.toastType.set(type);
+    this.showToast.set(true);
+
+    // Auto-nascondi dopo la durata specificata
+    setTimeout(() => {
+      this.hideToastNotification();
+    }, duration);
+  }
+
+  /**
+   * Nasconde la notifica toast
+   */
+  private hideToastNotification(): void {
+    this.showToast.set(false);
+  }
   /**
    * Cerca la posizione del veicolo nel signal del servizio MQTT
    * @param vehicleId - ID del veicolo da cercare

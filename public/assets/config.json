@@ -1,7 +1,6 @@
 {
   "apiBaseUrl": "http://10.0.90.9/Stage/TrackingApp",
   "mqttBrokerUrl": "wss://rabbitmq.test.intellitronika.com/ws",
-  "appVersion": "1.0.0",
   "features": {
     "realTimeUpdates": true,
     "autoRefreshInterval": 5000
@@ -10,8 +9,14 @@
     "endpoints": {
       "vehicles": "/api/Vehicles",
       "positions": "/api/positions", 
+      
       "users": "/api/users",
-      "auth": "/api/Auth"
+      "auth": "/api/Auth",
+        "logout": "/api/Auth/logout",
+
+        "streamStart": "/api/Streaming/start",
+        "streamStop": "/api/Streaming/stop",
+        "streamStatus":"/api/Streaming/status"
     },
     "timeout": 30000,
     "retryAttempts": 3
