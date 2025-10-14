@@ -214,45 +214,60 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
 }
   /* Container responsivo */
   .dashboard-container {
-    width: 100%;
-    max-width: 100%;
-    margin: 10px auto;
-    padding: 15px;
+    width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
+    margin: 20px auto;
+    padding: 24px;
     border: 2px solid #007bff;
-    border-radius: 8px;
-    font-family: Arial, sans-serif;
+    border-radius: 12px;
+    font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
     text-align: center;
     background-color: #f8f9fa;
     box-sizing: border-box;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
   }
 
   h1 {
     color: #007bff;
-    margin-bottom: 20px;
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 32px;
+    font-size: clamp(1.75rem, 5vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  /* Centraggio componente filtro */
+  app-select-filter {
+    display: block;
+    width: 100%;
+    margin: 0 auto 24px auto;
   }
 
   /* Bottoni responsivi */
   .buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 16px;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
   }
 
   .buttons button {
-    padding: 10px 20px;
-    font-size: clamp(14px, 2vw, 16px);
+    padding: 14px 24px;
+    font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+    font-weight: 500;
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     flex: 1;
-    min-width: 120px;
-    max-width: 200px;
+    min-width: 140px;
+    max-width: 220px;
+    font-family: inherit;
   }
 
   .buttons button:hover {
@@ -263,9 +278,13 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   .table-wrapper {
     width: 100%;
     overflow-x: auto;
-    margin-top: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-top: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #007bff #f1f5f9;
+    overscroll-behavior-x: contain;
   }
 
   /* Tabella responsive con auto-sizing */
@@ -278,13 +297,14 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   }
 
   th, td {
-    padding: clamp(8px, 2vw, 15px);
+    padding: clamp(12px, 2.5vw, 18px);
     border: 1px solid #007bff;
     text-align: left;
     word-wrap: break-word;
     max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-family: inherit;
   }
 
   thead {
@@ -296,13 +316,15 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   }
 
   th {
-    font-weight: bold;
-    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 600;
+    font-size: clamp(0.875rem, 2vw, 1rem);
     white-space: nowrap;
+    letter-spacing: 0.025em;
   }
 
   td {
-    font-size: clamp(11px, 1.4vw, 13px);
+    font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
+    line-height: 1.5;
   }
 
   tbody tr:nth-child(even) {
@@ -317,13 +339,15 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
 
   /* Bottone azione nella tabella */
   td button {
-    padding: 5px 10px;
+    padding: 8px 16px;
     background-color: #28a745;
     color: white;
     border: none;
-    border-radius: 3px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+    font-weight: 500;
+    font-family: inherit;
   }
 
   td button:hover {
@@ -333,8 +357,19 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   /* Responsive breakpoints */
   @media (max-width: 768px) {
     .dashboard-container {
-      margin: 5px;
-      padding: 10px;
+      width: calc(100% - 16px);
+      max-width: calc(100% - 16px);
+      margin: 8px auto;
+      padding: 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      overscroll-behavior: none;
+      position: relative;
+    }
+
+    app-select-filter {
+      margin: 0 auto 16px auto;
     }
 
     table {
@@ -342,25 +377,37 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
     }
 
     th, td {
-      padding: 6px 8px;
-      font-size: 11px;
+      padding: 8px 12px;
       max-width: 120px;
+    }
+    
+    th {
+      font-size: clamp(0.8125rem, 2vw, 0.875rem);
+    }
+    
+    td {
+      font-size: clamp(0.75rem, 1.8vw, 0.8125rem);
     }
 
     .buttons {
       flex-direction: column;
+      gap: 12px;
     }
 
     .buttons button {
       flex: none;
       width: 100%;
-      margin: 5px 0;
+      margin: 0;
+      padding: 16px 20px;
+      font-size: clamp(1rem, 2.5vw, 1.125rem);
     }
   }
 
   @media (max-width: 480px) {
     .dashboard-container {
       border: 1px solid #007bff;
+      margin: 4px;
+      padding: 12px;
     }
 
     table {
@@ -368,13 +415,21 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
     }
 
     th, td {
-      padding: 4px 6px;
-      font-size: 10px;
+      padding: 6px 8px;
       max-width: 80px;
+    }
+    
+    th {
+      font-size: clamp(0.75rem, 1.8vw, 0.8125rem);
+    }
+    
+    td {
+      font-size: clamp(0.6875rem, 1.5vw, 0.75rem);
     }
 
     h1 {
-      font-size: 1.2rem;
+      font-size: clamp(1.375rem, 4vw, 1.5rem);
+      margin-bottom: 24px;
     }
   }
 
@@ -390,6 +445,39 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
     }
   }
 
+  /* Controlli touch aggiuntivi per dispositivi molto piccoli */
+  @media (max-width: 480px) {
+    .dashboard-container {
+      width: calc(100% - 8px);
+      max-width: calc(100% - 8px);
+      margin: 4px auto;
+      padding: 12px;
+      touch-action: pan-y;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    app-select-filter {
+      margin: 0 auto 12px auto;
+    }
+    
+    .table-wrapper {
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+    }
+    
+    body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    html {
+      overflow: hidden;
+    }
+  }
+
   .message {
     margin-top: 20px;
     font-weight: bold;
@@ -398,33 +486,36 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
 
   /* Stili paginazione */
   .pagination-container {
-    margin-top: 20px;
+    margin-top: 32px;
     text-align: center;
   }
 
   .pagination-info {
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     color: #6c757d;
-    font-size: 14px;
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    font-weight: 500;
   }
 
   .pagination-controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
   .page-btn {
-    padding: 8px 12px;
+    padding: 10px 16px;
     background-color: #fff;
     border: 1px solid #007bff;
     color: #007bff;
     cursor: pointer;
-    font-size: 14px;
-    border-radius: 4px;
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    font-weight: 500;
+    border-radius: 6px;
     transition: all 0.2s ease;
+    font-family: inherit;
   }
 
   .page-btn:hover:not(:disabled) {
@@ -447,55 +538,61 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
 
   .page-numbers {
     display: flex;
-    gap: 2px;
+    gap: 4px;
   }
 
   @media (max-width: 768px) {
     .pagination-controls {
       flex-direction: column;
-      gap: 10px;
+      gap: 16px;
     }
     
     .page-numbers {
       order: -1;
     }
+
+    .pagination-container {
+      margin-top: 24px;
+    }
   }
 
   /* Stili per statistiche */
   .stats {
-    margin-top: 20px;
+    margin-top: 24px;
     display: flex;
-    gap: 20px;
+    gap: 24px;
     justify-content: center;
     flex-wrap: wrap;
   }
 
   .stat-item {
     color: #6c757d;
-    font-size: 14px;
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    font-weight: 500;
+    padding: 8px 12px;
   }
 
   /* Stili per ricerca globale */
   .search-results-info {
-    margin: 20px 0;
-    padding: 15px;
+    margin: 24px 0;
+    padding: 20px;
     background-color: #e3f2fd;
     border: 2px solid #2196f3;
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 16px;
   }
 
   .search-indicator {
     color: #1976d2;
-    font-size: 14px;
+    font-size: clamp(0.875rem, 2vw, 1rem);
     font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
   .search-indicator.error {
@@ -517,14 +614,16 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   }
 
   .btn-secondary {
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: #6c757d;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
+    font-weight: 500;
     transition: all 0.3s ease;
+    font-family: inherit;
   }
 
   .btn-secondary:hover {

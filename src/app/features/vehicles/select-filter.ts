@@ -60,18 +60,18 @@ import { MyMqttService } from '../../services/mymqtt-service';
     .filter-wrap {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 20px;
       width: 100%;
-      padding: 20px;
+      padding: 24px;
       background-color: #f8f9fa;
       border: 2px solid #007bff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .filter-controls {
       display: flex;
-      gap: 12px;
+      gap: 16px;
       align-items: center;
       flex-wrap: wrap;
     }
@@ -79,21 +79,22 @@ import { MyMqttService } from '../../services/mymqtt-service';
     .input-wrap {
       position: relative;
       flex: 1;
-      min-width: 200px;
+      min-width: 220px;
     }
 
     .filter-input {
       width: 100%;
-      padding: 12px 40px 12px 15px;
+      padding: 14px 44px 14px 18px;
       border: 2px solid #dee2e6;
-      border-radius: 8px;
+      border-radius: 10px;
       background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      font-size: clamp(0.875rem, 2.5vw, 1rem);
       color: #333;
       outline: none;
       transition: all 0.3s ease;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 400;
       box-sizing: border-box;
     }
 
@@ -109,15 +110,15 @@ import { MyMqttService } from '../../services/mymqtt-service';
 
     .clear-btn {
       position: absolute;
-      right: 8px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
       border: none;
       background: #007bff;
       color: white;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
       line-height: 1;
@@ -133,19 +134,20 @@ import { MyMqttService } from '../../services/mymqtt-service';
     }
 
     .select-wrap { 
-      min-width: 150px; 
+      min-width: 170px; 
     }
 
     .filter-select {
       width: 100%;
-      padding: 12px 15px;
-      padding-right: 40px;
-      border-radius: 8px;
+      padding: 14px 18px;
+      padding-right: 44px;
+      border-radius: 10px;
       border: 2px solid #dee2e6;
       background: #fff;
-      font-size: 14px;
+      font-size: clamp(0.875rem, 2.5vw, 1rem);
       cursor: pointer;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 400;
       color: #333;
       outline: none;
       transition: all 0.3s ease;
@@ -154,7 +156,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
       -moz-appearance: none;
       background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23007bff' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-4-4h8l-4 4z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-position: right 16px center;
       background-size: 16px;
       box-sizing: border-box;
     }
@@ -170,13 +172,15 @@ import { MyMqttService } from '../../services/mymqtt-service';
 
     .status-indicator {
       color: #6c757d;
-      font-size: 14px;
-      padding: 8px 12px;
-      border-radius: 6px;
+      font-size: clamp(0.875rem, 2vw, 1rem);
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 8px;
       background-color: #f8f9fa;
       transition: all 0.3s ease;
-      min-width: 150px;
+      min-width: 170px;
       text-align: center;
+      font-family: inherit;
     }
 
     .status-indicator.searching {
@@ -192,16 +196,17 @@ import { MyMqttService } from '../../services/mymqtt-service';
     }
 
     .btn {
-      padding: 12px 20px;
+      padding: 14px 24px;
       background: #28a745;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      font-size: 14px;
-      font-weight: bold;
+      font-size: clamp(0.875rem, 2.5vw, 1rem);
+      font-weight: 600;
       transition: all 0.3s ease;
       align-self: flex-start;
+      font-family: inherit;
     }
 
     .btn:hover {
@@ -232,15 +237,16 @@ import { MyMqttService } from '../../services/mymqtt-service';
     /* Responsiveness per dispositivi mobili */
     @media (max-width: 768px) {
       .filter-wrap {
-        margin: 10px;
-        padding: 15px;
-        max-width: none;
+        width: calc(100% - 24px);
+        max-width: calc(100% - 24px);
+        margin: 12px auto;
+        padding: 20px;
       }
       
       .filter-controls { 
         flex-direction: column; 
         align-items: stretch; 
-        gap: 15px;
+        gap: 20px;
       }
       
       .select-wrap { 
@@ -249,28 +255,43 @@ import { MyMqttService } from '../../services/mymqtt-service';
       }
 
       .filter-input, .filter-select {
-        font-size: 16px; /* Previene zoom su iOS */
+        font-size: clamp(1rem, 3vw, 1.125rem); /* Previene zoom su iOS */
+        padding: 16px 18px;
+      }
+
+      .filter-input {
+        padding-right: 48px;
+      }
+
+      .btn {
+        padding: 16px 24px;
+        width: 100%;
+        font-size: clamp(1rem, 3vw, 1.125rem);
       }
     }
 
     @media (max-width: 480px) {
       .filter-wrap {
-        margin: 5px;
-        padding: 12px;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        margin: 8px auto;
+        padding: 16px;
       }
 
       .filter-input, .filter-select {
-        padding: 10px 12px;
+        padding: 14px 16px;
+        font-size: clamp(0.9375rem, 2.8vw, 1rem);
       }
 
       .filter-input {
-        padding-right: 35px;
+        padding-right: 44px;
       }
 
       .clear-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 14px;
+        width: 28px;
+        height: 28px;
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        right: 8px;
       }
     }
   `,
