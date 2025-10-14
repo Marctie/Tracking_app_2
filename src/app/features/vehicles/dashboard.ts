@@ -50,7 +50,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   template: `
     <!-- test -->
     <div class="dashboard-container" (click)="onClickOutsideModal()">
-      <h1>Benvenuto sig.{{ userLogin.firstName() || getStoredUserName() }}</h1>
+      <h1>Welcome Mr. {{ userLogin.firstName() || getStoredUserName() }}</h1>
       <div>
         <app-select-filter (filterParam)="onFilterBy($event)"></app-select-filter>
       </div>
@@ -86,16 +86,16 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
               </td>
               }
               <td class="center">
-                <button (click)="goToMap(item, $event)">Mostra Dettagli</button>
+                <button (click)="goToMap(item, $event)">Show Details</button>
               </td>
             </tr>
             } } } @else {
-            <!-- Veicoli paginati normalmente -->
+            <!-- Paginated vehicles normally -->
             @for (item of paginatedVeicles(); track item.id) {
-            <!-- Loop attraverso i chunk di proprietà del veicolo -->
+            <!-- Loop through vehicle property chunks -->
             @for (chunk of chunkKeys(recoveryVeicleKeys(item), 7); track $index) {
             <tr>
-              <!-- Loop attraverso ogni proprietà del chunk -->
+              <!-- Loop through each property in chunk -->
               @for (key of chunk; track key) {
               <td>
                 @if (key === 'createdAt') {
@@ -106,7 +106,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
               </td>
               }
               <td class="center">
-                <button (click)="goToMap(item, $event)">Mostra Dettagli</button>
+                <button (click)="goToMap(item, $event)">Show Details</button>
               </td>
             </tr>
             } } }
@@ -118,21 +118,21 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
       @if (totalPages() > 1 && !isGlobalSearchActive()) {
       <div class="pagination-container">
         <div class="pagination-info">
-          Pagina {{ currentPage() }} di {{ totalPages() }} ({{ totalCount() }} veicoli totali)
+          Page {{ currentPage() }} of {{ totalPages() }} ({{ totalCount() }} total vehicles)
         </div>
         <div class="pagination-controls">
           <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage() === 1">
-            &#171; Prima
+            &#171; First
           </button>
           <button
             class="page-btn"
             (click)="goToPage(currentPage() - 1)"
             [disabled]="currentPage() === 1"
           >
-            &#8249; Precedente
+            &#8249; Previous
           </button>
           <span class="page-numbers">
-            <!-- Loop attraverso i numeri di pagina -->
+            <!-- Loop through page numbers -->
             @for (page of getPageNumbers(); track page) {
             <button
               class="page-btn"
@@ -148,14 +148,14 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
             (click)="goToPage(currentPage() + 1)"
             [disabled]="currentPage() === totalPages()"
           >
-            Successiva &#8250;
+            Next &#8250;
           </button>
           <button
             class="page-btn"
             (click)="goToPage(totalPages())"
             [disabled]="currentPage() === totalPages()"
           >
-            Ultima &#187;
+            Last &#187;
           </button>
         </div>
       </div>
@@ -166,7 +166,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
       <div class="search-results-info">
         @if (isSearching()) {
         <div class="search-indicator">
-          <strong>Ricerca in corso...</strong>
+          <strong>Searching...</strong>
           <span class="loading-spinner"></span>
         </div>
         } @else if (searchError()) {
@@ -174,16 +174,16 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
           <strong>{{ searchError() }}</strong>
         </div>
         <button class="btn-secondary" (click)="resetToNormalPagination()">
-          Torna alla visualizzazione normale
+          Back to normal view
         </button>
         } @else {
         <div class="search-indicator">
-          <strong>Ricerca globale attiva</strong>
-          <!-- - Mostrando {{ filterList().length }} risultati
-          su {{ allVeicles().length }} veicoli totali -->
+          <strong>Global search active</strong>
+          <!-- - Showing {{ filterList().length }} results
+          out of {{ allVeicles().length }} total vehicles -->
         </div>
         <button class="btn-secondary" (click)="resetToNormalPagination()">
-          ← Torna alla visualizzazione normale
+          ← Back to normal view
         </button>
         }
       </div>
@@ -995,8 +995,8 @@ export class Dashboard implements OnInit {
     }
     this.selectedVeicle.set(veicle);
     this.showModal.set(true);
-    this.titoloAlert = 'Dettaglio Veicolo';
-    this.descrizioneAlert = `Informazioni dettagliate per ${veicle.licensePlate}`;
+    this.titoloAlert = 'Vehicle Details';
+    this.descrizioneAlert = `Detailed information for ${veicle.licensePlate}`;
     console.log('[DASHBOARD] Apertura modal dettagli veicolo:', veicle.licensePlate);
     let variab = localStorage.getItem(veicle.id.toString());
     this.messageStorage = variab ? JSON.parse(variab) : {};
@@ -1168,7 +1168,7 @@ export class Dashboard implements OnInit {
         console.error('[DASHBOARD] Errore durante la ricerca globale:', error);
         this.isSearching.set(false);
         this.isGlobalSearchActive.set(false);
-        this.searchError.set('Errore durante la ricerca. Riprova.');
+        this.searchError.set('Error during search. Please try again.');
       },
     });
   }

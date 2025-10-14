@@ -12,14 +12,14 @@ import { UserService } from '../services/user-service';
             404
           </h1>
           <p class="hero-sub" style="font-size: 1.25rem; margin-bottom: 2rem;">
-            La pagina che stai cercando non è stata trovata.
+            The page you are looking for was not found.
           </p>
           <button
             class="btn btn-primary btn-custom"
             (click)="goHome()"
-            aria-label="Torni alla home"
+            aria-label="Go back to home"
           >
-            Torna alla Home
+            Back to Home
           </button>
         </section>
       </main>
@@ -32,11 +32,11 @@ import { UserService } from '../services/user-service';
   ],
 })
 export class ErrorPage {
-  userService= inject(UserService)
+  userService = inject(UserService);
   constructor(private router: Router) {}
 
   goHome() {
-   this.userService.isLoggedIn.set(false)
+    this.userService.isLoggedIn.set(false);
 
     this.router.navigate(['/landing-page']);
   }

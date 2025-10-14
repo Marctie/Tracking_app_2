@@ -23,7 +23,7 @@ import { ConfigService } from '../../services/config.service';
     <div class="map-container">
       <!-- Header della mappa con titolo e controlli -->
       <div class="map-header">
-        <h2>Mappa Veicoli in Tempo Reale</h2>
+        <h2>Real-Time Vehicle Map</h2>
         <div class="header-controls">
           <div class="control-buttons">
             <div class="map-view-selector">
@@ -33,16 +33,16 @@ import { ConfigService } from '../../services/config.service';
                 [value]="currentMapView()"
                 (change)="changeMapView($event)"
               >
-                <option value="street">Stradale</option>
+                <option value="street">Street</option>
                 <option value="satellite">Satellite</option>
-                <option value="cycle">Ciclabile</option>
+                <option value="cycle">Cycling</option>
               </select>
             </div>
             <button class="mqtt-refresh-btn primary" (click)="refreshAllVehiclesWithMqtt()">
-              Aggiorna Posizioni
+              Update Positions
             </button>
             <button class="mqtt-refresh-btn" (click)="backToDashboard()">
-              Torna alla Dashboard
+              Back to Dashboard
             </button>
           </div>
         </div>
@@ -56,26 +56,26 @@ import { ConfigService } from '../../services/config.service';
         </p>
       </div> -->
 
-      <!-- Statistiche veicoli con contatori per stato -->
+      <!-- Vehicle statistics with status counters -->
       <div class="stats-section">
         <div class="stats-grid">
-          <!-- Totale veicoli -->
+          <!-- Total vehicles -->
           <div class="stat-card">
             <div class="stat-content">
-              <span class="stat-label">Veicoli Totali</span>
+              <span class="stat-label">Total Vehicles</span>
               <span class="stat-value">{{ veicleList().length }}</span>
             </div>
           </div>
 
-          <!-- Veicoli con posizione -->
+          <!-- Vehicles with position -->
           <div class="stat-card">
             <div class="stat-content">
-              <span class="stat-label">Con Posizione</span>
+              <span class="stat-label">With Position</span>
               <span class="stat-value">{{ getVeiclesWithPosition() }}</span>
             </div>
           </div>
 
-          <!-- Veicoli online/attivi -->
+          <!-- Online/active vehicles -->
           <div class="stat-card online-status">
             <div class="stat-content">
               <span class="stat-label">Online</span>
@@ -83,7 +83,7 @@ import { ConfigService } from '../../services/config.service';
             </div>
           </div>
 
-          <!-- Veicoli offline/inattivi -->
+          <!-- Offline/inactive vehicles -->
           <div class="stat-card offline-status">
             <div class="stat-content">
               <span class="stat-label">Offline</span>
@@ -93,7 +93,7 @@ import { ConfigService } from '../../services/config.service';
 
           <div class="stat-card maintenance-status">
             <div class="stat-content">
-              <span class="stat-label">Manutenzione</span>
+              <span class="stat-label">Maintenance</span>
               <span class="stat-value">{{ getVeiclesMaintenance() }}</span>
             </div>
           </div>
@@ -104,6 +104,16 @@ import { ConfigService } from '../../services/config.service';
       <div class="map-wrapper">
         <div id="map" class="leaflet-map"></div>
       </div>
+
+      <!-- Toast Notification -->
+      @if (showToast()) {
+      <div class="toast-notification" [class]="'toast-' + toastType()">
+        <div class="toast-content">
+          <span class="toast-message">{{ toastMessage() }}</span>
+          <button class="toast-close" (click)="hideToastNotification()">×</button>
+        </div>
+      </div>
+      }
     </div>
   `,
   styles: `
@@ -509,65 +519,146 @@ import { ConfigService } from '../../services/config.service';
         font-size: 10px;
       }
     }
+
+    /* === STILI TOAST NOTIFICATION === */
+    .toast-notification {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 2000;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      animation: slideIn 0.3s ease-out;
+      min-width: 300px;
+      max-width: 400px;
+    }
+
+    .toast-success {
+      background: linear-gradient(135deg, #28a745, #34ce57);
+      color: white;
+    }
+
+    .toast-error {
+      background: linear-gradient(135deg, #dc3545, #e74c3c);
+      color: white;
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 20px;
+    }
+
+    .toast-message {
+      font-weight: 500;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 15px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+
+    .toast-close:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Responsive for toast on mobile */
+    @media (max-width: 768px) {
+      .toast-notification {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+      }
+    }
   `,
 })
 export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
-  private markers: L.Marker[] = []; // Array per tenere traccia dei marker
+  private markers: L.Marker[] = []; // Array to track markers
   router = inject(Router);
-  // Input per ricevere il veicolo selezionato dal componente padre
+  // Input to receive selected vehicle from parent component
   selectedVeicle = input<Veicles>();
 
-  // Timer per l'aggiornamento automatico configurabile
+  // Timer for configurable automatic update
   private autoUpdateInterval: any = null;
 
-  // Injection dei servizi e signal per i dati
+  // Service injection and signals for data
   private veicleService = inject(VeicleService); // Servizio per dati dal database
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
   private configService = inject(ConfigService); // Servizio per configurazione dinamica
   veicleList = signal<Veicles[]>([]);
-  // Signal per gestire le notifiche toast
+  // Signal to manage toast notifications
   showToast = signal(false);
   toastMessage = signal('');
   toastType = signal<'success' | 'error'>('success');
 
-  // Layer management per vista mappa (stradale, satellite, ciclabile)
+  // Layer management for map view (street, satellite, cycling)
   private currentBaseLayer!: L.TileLayer;
   private streetLayer!: L.TileLayer;
   private satelliteLayer!: L.TileLayer;
   private cycleLayer!: L.TileLayer;
   currentMapView = signal<'street' | 'satellite' | 'cycle'>('street');
 
-  // Mappa dei colori per gli stati dei veicoli
+  // Color map for vehicle states
   private statusColorMap: { [key: string]: string } = {
-    active: '#28a745', // Verde per veicoli attivi
+    active: '#28a745', // Green for active vehicles
     online: '#28a745',
-    inactive: '#dc3545', //Rosso per veicoli inattivi
-    offline: '#dc3545', // Rosso per veicoli offline
-    maintenance: '#ffc107', // Giallo per manutenzione
-    default: '#6c757d', // Grigio per stati sconosciuti
+    inactive: '#dc3545', // Red for inactive vehicles
+    offline: '#dc3545', // Red for offline vehicles
+    maintenance: '#ffc107', // Yellow for maintenance
+    default: '#6c757d', // Gray for unknown states
   };
+
   constructor() {
     effect(() => {
       const selected = this.selectedVeicle();
       if (this.map && selected) {
         console.log(
-          `Veicolo selezionato cambiato: ${selected.licensePlate} (Stato: ${selected.status})`
+          `Selected vehicle changed: ${selected.licensePlate} (Status: ${selected.status})`
         );
-        this.addVeicleMarkers(true); // Preserva la vista quando cambia il veicolo selezionato
+        this.addVeicleMarkers(true); // Preserve view when vehicle changes
       }
     });
   }
 
   ngOnInit(): void {
-    // Carica i dati dei veicoli
+    // Load vehicle data
     this.loadVeicles();
-    // Avvia l'aggiornamento automatico ogni 5 secondi
+    // Start automatic update every 5 seconds
     this.startAutoUpdate();
 
     this.mqttService.subscribeAndTrack('vehicles/+/status', (msg) => {
       const payload = JSON.parse(msg.payload.toString());
-      console.log('MQTT messaggio ricevuto (status):', payload);
+      console.log('MQTT message received (status):', payload);
 
       this.mqttService.ingestStatusMessage(msg);
     });
@@ -576,12 +667,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     // Configura le icone di Leaflet per evitare errori 404
     this.setupLeafletIcons();
-    // Inizializza la mappa dopo che la vista è stata caricata
+    // Initialize map after view has been loaded
     this.initMap();
   }
 
   ngOnDestroy(): void {
-    // Ferma l'aggiornamento automatico quando il componente viene distrutto
+    // Stop automatic update when component is destroyed
     // per evitare memory leak e chiamate API non necessarie
     this.stopAutoUpdate();
   }
@@ -595,7 +686,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
 
     this.autoUpdateInterval = setInterval(() => {
       console.log('[GENERAL-MAP] Esecuzione aggiornamento automatico posizioni veicoli');
-      this.loadVeicles(true); // Preserva la vista della mappa durante l'auto-update
+      this.loadVeicles(true); // Preserve map view during auto-update
     }, updateInterval);
   }
 
@@ -629,7 +720,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const statusesById = this.mqttService.statusById(); // ← stati correnti
 
       const updatedVeicles = response.items.map((v) => {
-        // posizione: come già fai
+        // position: as you already do
         const p = mqttPositions.find((mp) => mp.vehicleId === v.id);
         let next = { ...v };
 
@@ -638,8 +729,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
           const tDb = new Date(v.lastPosition?.timestamp ?? 0).getTime();
           if (tPos > tDb) next.lastPosition = p;
         }
-
-        // ★ stato: prendi dal service e normalizza
         const s = statusesById[v.id]?.status;
         if (s) next.status = this.normalizeStatus(s);
 
@@ -692,44 +781,27 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    * Inizializza i layer per le tre viste della mappa
    */
   private initMapLayers(): void {
-    // Layer stradale (OpenStreetMap standard)
+    // Layer stradale
     this.streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       minZoom: 4,
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     });
 
-    // Layer satellite (Esri World Imagery)
+    // Layer satellite
     this.satelliteLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
         maxZoom: 18,
         minZoom: 4,
-        attribution:
-          '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
       }
     );
 
-    // Layer ciclabile (OpenCycleMap)
-    this.cycleLayer = L.tileLayer(
-      'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=YOUR_API_KEY',
-      {
-        maxZoom: 18,
-        minZoom: 4,
-        attribution:
-          '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }
-    );
-
-    // Se non hai una API key per Thunderforest, usa OpenStreetMap con stile alternativo
-    // Fallback a OpenStreetMap con overlay ciclabile
+    // Layer ciclabile
     this.cycleLayer = L.tileLayer(
       'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
       {
         maxZoom: 18,
         minZoom: 4,
-        attribution:
-          '&copy; <a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }
     );
 
@@ -776,7 +848,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private addVeicleMarkers(preserveCurrentView: boolean = false): void {
     this.clearMarkers();
 
-    // Usa selectedVeicle se disponibile per mostrare un singolo veicolo
+    // Use selectedVeicle if available to show a single vehicle
     if (this.selectedVeicle()) {
       const selectedVeicle = this.selectedVeicle()!;
 
@@ -787,17 +859,17 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       ) {
         this.addVeicleMarker(selectedVeicle);
 
-        // Centra la mappa sul veicolo selezionato solo se non si deve preservare la vista
+        // Center map on selected vehicle only if view should not be preserved
         if (!preserveCurrentView) {
           const position = selectedVeicle.lastPosition;
           this.map.setView([position.latitude, position.longitude], 15);
         }
 
         console.log(
-          `Mostrato veicolo selezionato: ${selectedVeicle.licensePlate} (Stato: ${selectedVeicle.status})`
+          `Showing selected vehicle: ${selectedVeicle.licensePlate} (Status: ${selectedVeicle.status})`
         );
       } else {
-        console.warn('Il veicolo selezionato non ha una posizione valida');
+        console.warn('Selected vehicle does not have a valid position');
       }
 
       return;
@@ -810,7 +882,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Aggiusta la vista per includere tutti i marker solo se non si deve preservare la vista corrente
+    // Adjust view to include all markers only if current view should not be preserved
     if (this.markers.length > 0 && !preserveCurrentView) {
       const group = new L.FeatureGroup(this.markers);
       this.map.fitBounds(group.getBounds().pad(0.1));
@@ -822,7 +894,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private addVeicleMarker(veicle: Veicles): void {
     const position = veicle.lastPosition;
 
-    // Determina il colore del marker basato sullo stato del veicolo
+    // Determine marker color based on vehicle status
     const markerColor = this.getStatusColor(veicle.status);
 
     // Crea un'icona personalizzata con il colore appropriato
@@ -866,14 +938,14 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       return false;
     });
 
-    // Contenuto del popup con informazioni sul veicolo e il suo stato
+    // Popup content with vehicle information and status
     const popupContent = `
       <div style="font-family: Arial, sans-serif; min-width: 250px;">
         <h4 style="margin: 0 0 10px 0; color: #007bff; text-align: center;">
            ${veicle.licensePlate}
         </h4>
        
-        <!-- Indicatore dello stato del veicolo -->
+        <!-- Vehicle status indicator -->
         <div style="
           background: ${markerColor};
           color: white;
@@ -900,29 +972,35 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         </div>
        
         <div style="display: grid; gap: 6px;">
-          <div><strong> Modello:</strong> ${veicle.model}</div>
-          <div><strong> Marca:</strong> ${veicle.brand}</div>
-          <div><strong> Velocità:</strong> ${position.speed} km/h</div>
-          <div><strong> Direzione:</strong> ${position.heading}°</div>
-          <div><strong> Coordinate:</strong><br>
+          <div><strong>Model:</strong> ${veicle.model}</div>
+          <div><strong>Brand:</strong> ${veicle.brand}</div>
+          <div><strong>Speed:</strong> ${position.speed} km/h</div>
+          <div><strong>Direction:</strong> ${position.heading}°</div>
+          <div><strong>Coordinates:</strong><br>
             &nbsp;&nbsp;Lat: ${position.latitude.toFixed(6)}<br>
             &nbsp;&nbsp;Lng: ${position.longitude.toFixed(6)}
           </div>
           <div style="font-size: 11px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-            <strong> Ultimo aggiornamento:</strong><br>
+            <strong>Last Update:</strong><br>
             ${this.formatDate(position.timestamp)}
           </div>
         </div>
       </div>
     `;
 
-    marker.bindPopup(popupContent);
+    // Simple popup - always stays open
+    marker.bindPopup(popupContent, {
+      closeButton: true, // Mostra la X per chiudere
+      autoClose: false, // Non chiudere automaticamente
+      closeOnClick: false, // Non chiudere al click mappa
+    });
+
     this.markers.push(marker);
   }
 
   /**
-   * Determina il colore del marker basato sullo stato del veicolo
-   * @param status - Lo stato del veicolo
+   * Determines marker color based on vehicle status
+   * @param status - The vehicle status
    * @returns Il colore esadecimale corrispondente allo stato
    */
   private getStatusColor(status: string): string {
@@ -938,17 +1016,47 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    console.log(`Stato sconosciuto: ${status}, uso colore di default`);
+    console.log(`Unknown status: ${status}, using default color`);
     return this.statusColorMap['default'];
   }
 
   private clearMarkers(): void {
+    // Save open popups before removing markers
+    const openPopups: Array<{ content: string; latlng: L.LatLng }> = [];
+
     this.markers.forEach((marker) => {
+      if (marker.isPopupOpen()) {
+        const popup = marker.getPopup();
+        if (popup) {
+          openPopups.push({
+            content: popup.getContent() as string,
+            latlng: marker.getLatLng(),
+          });
+        }
+      }
       this.map.removeLayer(marker);
     });
+
     this.markers = [];
+
+    // Reopen popups that were open
+    setTimeout(() => {
+      openPopups.forEach((popupData) => {
+        L.popup({
+          closeButton: true,
+          autoClose: false,
+          closeOnClick: false,
+        })
+          .setLatLng(popupData.latlng)
+          .setContent(popupData.content)
+          .openOn(this.map);
+      });
+    }, 100);
   }
 
+  /**
+   * Chiude tutti i popup aperti sulla mappa
+   */
   private formatDate(date: Date): string {
     return new Date(date).toLocaleString('it-IT', {
       day: '2-digit',
@@ -968,7 +1076,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Aggiorna le posizioni dei veicoli con i dati MQTT più recenti
+   * Updates vehicle positions with latest MQTT data
    * Cerca solo nei servizi MQTT (localStorage commentato)
    */
   public refreshAllVehiclesWithMqtt(): void {
@@ -995,20 +1103,20 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     });
     // Mostra notifica toast basata sui risultati
     try {
-      // Aggiorna i marker sulla mappa preservando la vista corrente
+      // Update markers on map preserving current view
       this.addVeicleMarkers(true);
 
       // Determina il messaggio e tipo di notifica
       if (updatedCount > 0) {
-        const message = `Posizioni aggiornate: ${updatedCount} veicoli`;
+        const message = `Positions updated: ${updatedCount} vehicles`;
         this.showToastNotification(message, 'success');
       } else {
-        const message = 'Nessun aggiornamento disponibile';
+        const message = 'Update Successful';
         this.showToastNotification(message, 'success');
       }
     } catch (error) {
-      console.error('[GENERAL-MAP] Errore durante aggiornamento marker:', error);
-      this.showToastNotification("Errore durante l'aggiornamento", 'error');
+      console.error('[GENERAL-MAP] Error during marker update:', error);
+      this.showToastNotification('Error during update', 'error');
     }
 
     this.veicleList.set(updated);
@@ -1024,22 +1132,22 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     this.toastType.set(type);
     this.showToast.set(true);
 
-    // Auto-nascondi dopo la durata specificata
+    // Auto-hide after specified duration
     setTimeout(() => {
       this.hideToastNotification();
     }, duration);
   }
 
   /**
-   * Nasconde la notifica toast
+   * Hides the toast notification
    */
-  private hideToastNotification(): void {
+  hideToastNotification(): void {
     this.showToast.set(false);
   }
   /**
-   * Cerca la posizione del veicolo nel signal del servizio MQTT
-   * @param vehicleId - ID del veicolo da cercare
-   * @returns Posizione MQTT se trovata, null altrimenti
+   * Search for vehicle position in MQTT service signal
+   * @param vehicleId - Vehicle ID to search for
+   * @returns MQTT position if found, null otherwise
    */
   private getMqttPositionFromService(vehicleId: any): any {
     try {
@@ -1047,11 +1155,11 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
 
       if (position) {
-        console.log(`Posizione trovata nel service per veicolo ID ${vehicleId}`);
+        console.log(`Position found in service for vehicle ID ${vehicleId}`);
         return position;
       }
 
-      console.log(`Nessuna posizione per veicolo ID ${vehicleId}`);
+      console.log(`No position for vehicle ID ${vehicleId}`);
       return null;
     } catch (error) {
       console.error('Errore durante la ricerca ', error);
@@ -1060,20 +1168,20 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * METODO COMMENTATO - LocalStorage non più utilizzato
-   * Cerca la posizione del veicolo nel localStorage
-   * @param vehicleId - ID del veicolo da cercare
-   * @returns Posizione MQTT se trovata, null altrimenti
+   * COMMENTED METHOD - LocalStorage no longer used
+   * Search for vehicle position in localStorage
+   * @param vehicleId - Vehicle ID to search for
+   * @returns MQTT position if found, null otherwise
    */
   /*
   private getMqttPositionFromLocalStorage(vehicleId: any): any {
     try {
-      // Prova prima con l'ID del veicolo come chiave
+      // Try first with vehicle ID as key
       let storedPosition = localStorage.getItem(vehicleId.toString());
  
       if (storedPosition) {
         const position = JSON.parse(storedPosition);
-        console.log(`Posizione trovata in localStorage per veicolo ID ${vehicleId}`);
+        console.log(`Position found in localStorage for vehicle ID ${vehicleId}`);
         return position;
       }
  
@@ -1084,12 +1192,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
         const position = mqttList.find((pos: any) => pos.vehicleId === vehicleId);
  
         if (position) {
-          console.log(`Posizione trovata nella lista MQTT per veicolo ID ${vehicleId}`);
+          console.log(`Position found in MQTT list for vehicle ID ${vehicleId}`);
           return position;
         }
       }
  
-      console.log(`Nessuna posizione in localStorage per veicolo ID ${vehicleId}`);
+      console.log(`No position in localStorage for vehicle ID ${vehicleId}`);
       return null;
     } catch (error) {
       console.error('Errore leggendo localStorage:', error);
@@ -1099,24 +1207,24 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   */
 
   /**
-   * Metodo helper per contare veicoli per stati specifici (per debugging)
-   * @param vehicles - Array di veicoli da analizzare
-   * @param statuses - Array di stati da cercare
-   * @returns Conteggio dei veicoli che corrispondono agli stati
+   * Helper method to count vehicles by specific statuses (for debugging)
+   * @param vehicles - Array of vehicles to analyze
+   * @param statuses - Array of statuses to search for
+   * @returns Count of vehicles matching the statuses
    */
   private countVehiclesByStatus(vehicles: Veicles[], statuses: string[]): number {
     return vehicles.filter((veicle) => {
       const status = veicle.status?.toLowerCase().trim() || '';
-      // Usa controllo esatto invece di includes per evitare false positive
+      // Use exact check instead of includes to avoid false positives
       return statuses.some((s) => status === s.toLowerCase());
     }).length;
   }
 
   /**
-   * Conta il numero di veicoli che hanno una posizione valida
-   * Utile per le statistiche mostrate nell'interfaccia
+   * Counts the number of vehicles that have a valid position
+   * Useful for statistics shown in the interface
    *
-   * @returns Numero di veicoli con coordinate valide
+   * @returns Number of vehicles with valid coordinates
    */
   public getVeiclesWithPosition(): number {
     return this.veicleList().filter(
@@ -1126,8 +1234,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Conta i veicoli online/attivi (stati che corrispondono ai colori verdi)
-   * @returns Numero di veicoli online/attivi
+   * Counts online/active vehicles (statuses that correspond to green colors)
+   * @returns Number of online/active vehicles
    */
   public getVeiclesOnline(): number {
     return this.veicleList().filter((v) => this.normalizeStatus(v.status) === 'active').length;
@@ -1141,8 +1249,8 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Conta i veicoli in manutenzione (stati che corrispondono ai colori gialli)
-   * @returns Numero di veicoli in manutenzione
+   * Counts vehicles in maintenance (statuses that correspond to yellow colors)
+   * @returns Number of vehicles in maintenance
    */
   public getVeiclesMaintenance(): number {
     return this.veicleList().filter((veicle) => {

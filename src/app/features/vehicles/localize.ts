@@ -6,8 +6,8 @@ import { Router } from '@angular/router';
   imports: [],
   template: `
     <div>
-      <h1>sei qui per localizzare il veicolo !</h1>
-      <button (click)="goBack()">torna indietro</button>
+      <h1>You are here to locate the vehicle!</h1>
+      <button (click)="goBack()">Go back</button>
     </div>
   `,
   styles: ``,

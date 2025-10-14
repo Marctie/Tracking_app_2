@@ -20,7 +20,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
             (input)="onSearchTextChange($event)"
             type="text"
             class="filter-input"
-            placeholder="Digita per cercare..."
+            placeholder="Type to search..."
           />
           <button
             class="clear-btn"
@@ -36,22 +36,21 @@ import { MyMqttService } from '../../services/mymqtt-service';
             [(ngModel)]="valueOption"
             (change)="onFilterTypeChange()"
             class="filter-select"
-            aria-label="Seleziona tipo filtro"
+            aria-label="Select filter type"
           >
-            <option value="">Tutti i campi</option>
-            <option value="licensePlate">Targa</option>
-            <option value="model">Modello</option>
+            <option value="">All fields</option>
+            <option value="licensePlate">License Plate</option>
+            <option value="model">Model</option>
           </select>
         </div>
         <button class="btn" (click)="goMapGen()" [disabled]="isMapLoading()">
           @if (isMapLoading()) {
-          <span class="btn-loading">⟳</span> Preparazione mappa... } @else { Vai alla mappa completa
-          dei veicoli }
+          <span class="btn-loading">⟳</span> Preparing map... } @else { Go to complete vehicle map }
         </button>
 
         <!-- <div class="status-indicator" [class.searching]="isSearching()">
           <span *ngIf="!isSearching() && searchResults()">
-            {{ searchResults() }} risultati trovati
+            {{ searchResults() }} results found
           </span>
         </div> -->
       </div>
@@ -279,32 +278,32 @@ import { MyMqttService } from '../../services/mymqtt-service';
 export class SelectFilter implements OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
-  // Signal per gestire lo stato di caricamento
-  isMapLoading = signal(false); // Stato caricamento per navigazione alla mappa
+  // Signal to manage loading state
+  isMapLoading = signal(false); // Loading state for navigation to map
 
   router = inject(Router);
   veicleService = inject(VeicleService);
   mqttService = inject(MyMqttService);
 
-  // Cache per il precaricamento
+  // Cache for preloading
   private isPreloading = false;
   private preloadTimestamp: number | null = null;
 
-  // Signals per lo stato del componente
+  // Signals for component state
   valueOption = '';
   searchText = signal('');
   isSearching = signal(false);
   searchResults = signal<number | null>(null);
 
-  // Output per comunicare con il componente padre
+  // Output to communicate with parent component
   filterParam = output<{ valueOption: string; textFilter: string; isGlobalSearch: boolean }>();
 
   constructor() {
-    // Configurazione del debouncing per la ricerca
+    // Debouncing configuration for search
     this.searchSubject
       .pipe(
-        debounceTime(300), // Attende 300ms dopo l'ultimo input
-        distinctUntilChanged(), // Evita ricerche duplicate
+        debounceTime(300), // Wait 300ms after last input
+        distinctUntilChanged(), // Avoid duplicate searches
         takeUntil(this.destroy$)
       )
       .subscribe((searchValue) => {
@@ -315,14 +314,14 @@ export class SelectFilter implements OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    // Reset dello stato di loading per sicurezza
+    // Reset loading state for safety
     this.isMapLoading.set(false);
-    // Pulizia cache precaricamento
+    // Preload cache cleanup
     this.isPreloading = false;
     this.preloadTimestamp = null;
   }
 
-  // Metodo chiamato quando cambia il testo di ricerca
+  // Method called when search text changes
   onSearchTextChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const value = target.value;
@@ -336,7 +335,7 @@ export class SelectFilter implements OnDestroy {
     }
   }
 
-  // Metodo chiamato quando cambia il tipo di filtro
+  // Method called when filter type changes
   onFilterTypeChange(): void {
     const currentText = this.searchText();
     if (currentText.trim().length > 0) {
@@ -344,11 +343,11 @@ export class SelectFilter implements OnDestroy {
     }
   }
 
-  // Esegue la ricerca e notifica il componente padre
+  // Executes search and notifies parent component
   private performSearch(searchValue: string): void {
     const upperSearchValue = searchValue.toUpperCase();
 
-    console.log('[SELECT-FILTER] Ricerca globale:', {
+    console.log('[SELECT-FILTER] Global search:', {
       searchValue: upperSearchValue,
       filterType: this.valueOption || 'all',
     });
@@ -360,7 +359,7 @@ export class SelectFilter implements OnDestroy {
     });
   }
 
-  // Pulisce la ricerca
+  // Clears search
   clearSearch(): void {
     this.searchText.set('');
     this.valueOption = '';
@@ -373,37 +372,37 @@ export class SelectFilter implements OnDestroy {
       isGlobalSearch: false,
     });
 
-    console.log('[SELECT-FILTER] Ricerca cancellata');
+    console.log('[SELECT-FILTER] Search cleared');
   }
 
-  // Aggiorna il numero di risultati (chiamato dal dashboard)
+  // Updates number of results (called by dashboard)
   updateSearchResults(count: number): void {
     this.searchResults.set(count);
     this.isSearching.set(false);
   }
 
-  // Navigazione alla mappa generale
+  // Navigation to general map
   goMapGen(): void {
-    console.log('Navigazione verso mappa generale - Avvio precaricamento');
+    console.log('Navigation to general map - Starting preload');
 
-    // Evita click multipli
+    // Avoid multiple clicks
     if (this.isMapLoading()) {
-      console.log('Precaricamento già in corso...');
+      console.log('Preload already in progress...');
       return;
     }
 
     this.isMapLoading.set(true);
 
-    // Avvia il precaricamento dei dati durante il timeout
+    // Start data preload during timeout
     this.preloadMapData()
       .then(() => {
-        console.log('Precaricamento completato - Navigazione verso mappa');
+        console.log('Preload completed - Navigation to map');
         this.router.navigate(['/generalmap']);
-        // Il loading si resetterà automaticamente al cambio route
+        // Loading will reset automatically on route change
       })
       .catch((error) => {
-        console.warn('Errore nel precaricamento, ma procedo comunque:', error);
-        // Anche in caso di errore, naviga comunque dopo il timeout minimo
+        console.warn('Error in preload, but proceeding anyway:', error);
+        // Even in case of error, navigate anyway after minimum timeout
         setTimeout(() => {
           this.router.navigate(['/generalmap']);
         }, 500);
@@ -411,39 +410,39 @@ export class SelectFilter implements OnDestroy {
   }
 
   /**
-   * Precarica i dati necessari per la mappa generale
+   * Preloads data necessary for the general map
    */
   private async preloadMapData(): Promise<void> {
-    // Evita precaricamenti duplicati recenti (cache di 30 secondi)
+    // Avoids duplicate recent preloads (30 second cache)
     const now = Date.now();
     if (this.isPreloading || (this.preloadTimestamp && now - this.preloadTimestamp < 30000)) {
-      console.log('[PRELOAD] Utilizzo cache precaricamento recente');
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Minimo delay per UX
+      console.log('[PRELOAD] Using recent preload cache');
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Minimum delay for UX
       return;
     }
 
     try {
       this.isPreloading = true;
-      console.log('[PRELOAD] Inizio precaricamento dati mappa...');
+      console.log('[PRELOAD] Starting map data preload...');
 
-      // Precarica tutti i veicoli dal server
+      // Preload all vehicles from server
       const vehiclesPromise = this.veicleService.getAllVeicles().toPromise();
 
-      // Attendi un minimo di 500ms per dare feedback visivo all'utente
+      // Wait a minimum of 500ms to give visual feedback to the user
       const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Esegui entrambe le operazioni in parallelo
+      // Execute both operations in parallel
       const [vehiclesResponse] = await Promise.all([vehiclesPromise, minDelayPromise]);
 
       if (vehiclesResponse && vehiclesResponse.items) {
-        console.log(`[PRELOAD] Precaricati ${vehiclesResponse.items.length} veicoli`);
+        console.log(`[PRELOAD] Preloaded ${vehiclesResponse.items.length} vehicles`);
         this.preloadTimestamp = now;
 
-        // I dati sono ora nella cache HTTP di Angular e saranno disponibili
-        // immediatamente quando la mappa generale li richiederà
+        // Data is now in Angular HTTP cache and will be available
+        // immediately when the general map requests it
       }
     } catch (error) {
-      console.error('[PRELOAD] Errore durante il precaricamento:', error);
+      console.error('[PRELOAD] Error during preload:', error);
       throw error;
     } finally {
       this.isPreloading = false;
@@ -451,7 +450,7 @@ export class SelectFilter implements OnDestroy {
   }
 }
 
-// Interfaccia aggiornata per includere il flag di ricerca globale
+// Updated interface to include global search flag
 export interface IFilter {
   valueOption: string;
   textFilter: string;

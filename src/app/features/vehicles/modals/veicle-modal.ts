@@ -33,27 +33,27 @@ import { Router } from '@angular/router';
           <div class="details-container" style="text-align: left;">
             @if (selectedVeicle()){
             <div class="detail-row">
-              <strong>Targa:</strong> {{ selectedVeicle()?.licensePlate }}
+              <strong>License Plate:</strong> {{ selectedVeicle()?.licensePlate }}
             </div>
-            <div class="detail-row"><strong>Modello:</strong> {{ selectedVeicle()?.model }}</div>
-            <div class="detail-row"><strong>Marca:</strong> {{ selectedVeicle()?.brand }}</div>
-            <div class="detail-row"><strong>Stato:</strong> {{ selectedVeicle()?.status }}</div>
+            <div class="detail-row"><strong>Model:</strong> {{ selectedVeicle()?.model }}</div>
+            <div class="detail-row"><strong>Brand:</strong> {{ selectedVeicle()?.brand }}</div>
+            <div class="detail-row"><strong>Status:</strong> {{ selectedVeicle()?.status }}</div>
             <div class="detail-row">
-              <strong>Velocità:</strong> {{ this.selectedVeicle()?.lastPosition?.speed }}km/h
+              <strong>Speed:</strong> {{ this.selectedVeicle()?.lastPosition?.speed }}km/h
             </div>
             <div class="detail-row">
-              <strong>Creato il:</strong> {{ formatDate(selectedVeicle()!.createdAt) }}
+              <strong>Created on:</strong> {{ formatDate(selectedVeicle()!.createdAt) }}
             </div>
             <div style="text-align: center;">
               <!-- Dropdown Storico Posizioni -->
               <div class="position-history-section">
-                <h4>Storico Posizioni</h4>
+                <h4>Position History</h4>
                 <select
                   class="position-history-dropdown"
                   [(ngModel)]="selectedHistoryPosition"
                   (change)="onPositionHistoryChange()"
                 >
-                  <option value="">-- Seleziona una posizione dal registro --</option>
+                  <option value="">-- Select a position from the registry --</option>
                   @for (position of positionHistory(); track position.timestamp.getTime()) {
                   <option [value]="position.timestamp.getTime()">
                     {{ formatPositionHistoryOption(position) }}
@@ -66,21 +66,21 @@ import { Router } from '@angular/router';
                   (position.timestamp.getTime().toString() === selectedHistoryPosition) {
                   <div class="history-position-info">
                     <div>
-                      <strong>Data & Ora</strong>
+                      <strong>Date & Time</strong>
                       <span>{{ formatDate(position.timestamp) }}</span>
                       <span class="time-ago">{{ getTimeAgo(position.timestamp) }}</span>
                     </div>
                     <div>
-                      <strong>Coordinate GPS</strong>
+                      <strong>GPS Coordinates</strong>
                       <span>{{ position.latitude }}, {{ position.longitude }}</span>
                     </div>
                     <div>
-                      <strong>Velocità</strong>
+                      <strong>Speed</strong>
                       <span>{{ position.speed || 0 }} km/h</span>
                     </div>
                     @if (position.heading !== undefined) {
                     <div>
-                      <strong>Direzione</strong>
+                      <strong>Direction</strong>
                       <span>{{ position.heading }}°</span>
                     </div>
                     }
@@ -90,7 +90,7 @@ import { Router } from '@angular/router';
                 <br />
 
                 } @if(selectedVeicle()?.lastPosition){
-                <strong>Ultima posizione:</strong>
+                <strong>Last position:</strong>
                 <div class="position-info">
                   Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
                   Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
@@ -99,14 +99,14 @@ import { Router } from '@angular/router';
               </div>
               <br />
 
-              <button class="refresh-btn" (click)="refreshVeicles()">Aggiorna posizione</button>
+              <button class="refresh-btn" (click)="refreshVeicles()">Refresh position</button>
             </div>
             }
           </div>
           <!--</div>-->
         </div>
         <div class="actions">
-          <button class="blackbtn" (click)="close()">Chiudi</button>
+          <button class="blackbtn" (click)="close()">Close</button>
         </div>
       </div>
       <!--</div>-->
@@ -535,7 +535,7 @@ tr {
 })
 export class VeicleModal implements OnInit, AfterViewInit {
   @Input() titolo: string = '';
-  @Input() testo: string = 'testo da mostrare ';
+  @Input() testo: string = 'text to show';
   selectedVeicle = input<Veicles>();
   hideModal = output<boolean>();
   router = inject(Router);
@@ -554,23 +554,23 @@ export class VeicleModal implements OnInit, AfterViewInit {
   private markers: L.Marker[] = [];
 
   ngOnInit(): void {
-    console.log('[MODAL] Inizializzazione modal per veicolo:', this.selectedVeicle()?.licensePlate);
-    // Carica lo storico delle posizioni
+    console.log('[MODAL] Modal initialization for vehicle:', this.selectedVeicle()?.licensePlate);
+    // Load position history
     this.loadPositionHistory();
   }
 
   ngAfterViewInit(): void {
     this.setupLeafletIcons();
-    // Inizializza solo la mappa - NON caricare tutti i veicoli
+    // Initialize only the map - DO NOT load all vehicles
     this.initMap();
   }
 
-  // Metodo per configurare le icone e rimuovere l'ombra
+  // Method to configure icons and remove shadow
   private setupLeafletIcons(): void {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
 
     L.Icon.Default.mergeOptions({
-      // Icona SVG inline per evitare file esterni
+      // Inline SVG icon to avoid external files
       iconUrl:
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZGM2ZTI2Ii8+Cjwvc3ZnPg==',
       iconRetinaUrl:
@@ -582,11 +582,11 @@ export class VeicleModal implements OnInit, AfterViewInit {
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
     });
-    console.log('[MODAL] Configurazione icone Leaflet completata');
+    console.log('[MODAL] Leaflet icons configuration completed');
   }
 
   initMap(): void {
-    // Crea la mappa centrata su Roma
+    // Create map centered on Rome
     this.map = L.map(this.mapElement?.nativeElement, {
       center: [41.9028, 12.4964],
       zoom: 6,
@@ -595,51 +595,51 @@ export class VeicleModal implements OnInit, AfterViewInit {
       maxZoom: 19,
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(this.map);
-    // MOSTRA SOLO il veicolo selezionato dal dashboard (SelectedVeicle obj)
+    // SHOW ONLY the selected vehicle from dashboard (SelectedVeicle obj)
     this.showSelectedVehicleOnMap();
   }
 
-  // Metodo elementare per mostrare il veicolo selezionato
+  // Basic method to show selected vehicle
   showSelectedVehicleOnMap(): void {
-    console.log('[MODAL] Visualizzazione veicolo selezionato sulla mappa');
-    // Controllo del veicolo selezionato
+    console.log('[MODAL] Displaying selected vehicle on map');
+    // Check selected vehicle
     if (!this.selectedVeicle) {
-      console.log('[MODAL] Errore: Nessun veicolo selezionato');
+      console.log('[MODAL] Error: No vehicle selected');
       return;
     }
-    // Controllo se il veicolo ha una posizione
+    // Check if vehicle has a position
     if (!this.selectedVeicle()?.lastPosition) {
-      console.log('[MODAL] Errore: Il veicolo non ha posizione disponibile');
+      console.log('[MODAL] Error: Vehicle has no position available');
       return;
     }
     const lat = this.selectedVeicle()?.lastPosition.latitude;
     const lng = this.selectedVeicle()?.lastPosition.longitude;
     if (!lat || !lng) {
-      console.log('[MODAL] Errore: Coordinate non valide - Lat:', lat, 'Lng:', lng);
+      console.log('[MODAL] Error: Invalid coordinates - Lat:', lat, 'Lng:', lng);
       return;
     }
     console.log(
       '[MODAL] Creazione marker per veicolo:',
       this.selectedVeicle()?.licensePlate,
-      'alle coordinate:',
+      'at coordinates:',
       lat,
       lng
     );
-    // Crea il marker del veicolo
+    // Create vehicle marker
     const marker = L.marker([lat, lng]).addTo(this.map);
 
-    // Centra la mappa sul veicolo
+    // Center map on vehicle
     this.map.setView([lat, lng], 15);
 
-    // Salva il marker per poterlo rimuovere in seguito
+    // Save marker to be able to remove it later
     this.markers.push(marker);
   }
 
-  //Chiusura della modale cliccando fuori dagli spazi
+  //Modal closure by clicking outside the spaces
   onOverlayClick(event: MouseEvent): void {
     this.close();
   }
-  //formattazione della data
+  //date formatting
   formatDate(data: string | Date): string {
     if (!data) return '';
     const d = new Date(data);

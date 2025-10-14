@@ -14,27 +14,27 @@ export class UserService {
   userLogin = signal<ILogin>({} as ILogin);
   currentUrl = signal<string>('/landing-page');
 
-  // Stato reattivo: utente loggato? (default: false)
+  // Reactive state: user logged in? (default: false)
   isLoggedIn = signal(false);
   router = inject(Router);
   firstName = signal<string>('');
-  veicleService = inject(VeicleService); // Servizio per pre-caricamento
+  veicleService = inject(VeicleService); // Service for pre-loading
   private configService = inject(ConfigService);
 
-  // Subject per comunicare fine caricamento al componente Login
+  // Subject to communicate end of loading to Login component
   loginCompleted$ = new Subject<boolean>();
 
   constructor(private http: HttpClient) {}
 
   /**
-   * Ottiene l'URL dinamico per il login dalla configurazione
+   * Gets dynamic URL for login from configuration
    */
   private getLoginUrl(): string {
     return this.configService.getApiUrl('auth') + '/login';
   }
 
   /**
-   * Ottiene l'URL dinamico per il logout dalla configurazione
+   * Gets dynamic URL for logout from configuration
    */
   private getLogoutUrl(): string {
     return this.configService.getApiUrl('auth') + '/logout';
@@ -48,7 +48,7 @@ export class UserService {
       next: (response) => {
         this.firstName.set(response.firstName);
 
-        // Salva anche nel localStorage per persistenza
+        // Also save to localStorage for persistence
         localStorage.setItem('userFirstName', response.firstName);
 
         const myToken = response.token;
@@ -56,25 +56,25 @@ export class UserService {
         localStorage.setItem('token', myToken);
         localStorage.setItem('tokenExp', tokenExp.toString());
 
-        // PRE-CARICAMENTO: Carica la prima pagina in background prima di navigare
-        console.log('[LOGIN] Avvio pre-caricamento prima pagina dashboard...');
+        // PRE-LOADING: Load first page in background before navigating
+        console.log('[LOGIN] Starting dashboard first page pre-loading...');
         this.preloadFirstPage().then(() => {
-          // Naviga alla dashboard solo dopo aver pre-caricato i dati
+          // Navigate to dashboard only after pre-loading data
           this.router.navigate(['/dashboard']);
-          console.log('[LOGIN] Login completato con pre-caricamento!');
+          console.log('[LOGIN] Login completed with pre-loading!');
 
-          // Notifica il componente che il processo è completato
+          // Notify component that process is completed
           this.loginCompleted$.next(true);
         });
 
-        console.log(response, 'risposta login');
+        console.log(response, 'login response');
         this.isLoggedIn.set(true);
       },
       error: (error) => {
-        alert('credenziali errate riprova');
+        alert('Invalid credentials, please try again');
         console.log(error, 'errore');
 
-        // Notifica il componente anche in caso di errore per nascondere il loader
+        // Notify component also in case of error to hide loader
         this.loginCompleted$.next(false);
       },
     });
@@ -86,20 +86,20 @@ export class UserService {
 
     this.http.post(logoutUrl, '').subscribe({
       next: (response) => {
-        console.log('logout effettuato', response);
+        console.log('Logout successful', response);
 
-        // Pulisce i dati dell'utente dal localStorage
+        // Clean user data from localStorage
         localStorage.removeItem('userFirstName');
         localStorage.removeItem('token');
         localStorage.removeItem('tokenExp');
 
-        // Resetta i signal
+        // Reset signals
         this.firstName.set('');
         this.isLoggedIn.set(false);
         this.router.navigate(['/landing-page']);
       },
       error: (error) => {
-        alert('impossibile fare il logout');
+        alert('Unable to logout');
         console.log(error, 'errore');
       },
     });
@@ -110,16 +110,16 @@ export class UserService {
       if (tokenExp.getTime() > new Date().getTime()) {
         this.isLoggedIn.set(true);
 
-        // Recupera il nome utente dal localStorage se disponibile
+        // Recover username from localStorage if available
         const storedFirstName = localStorage.getItem('userFirstName');
         if (storedFirstName) {
           this.firstName.set(storedFirstName);
         }
 
         console.log(
-          'loggato: ',
+          'logged in: ',
           this.isLoggedIn(),
-          ' maggiore: ',
+          ' greater: ',
           tokenExp.getTime() > new Date().getTime()
         );
       }
@@ -127,40 +127,40 @@ export class UserService {
   }
 
   /**
-   * PRE-CARICAMENTO: Carica la prima pagina dei veicoli durante il login
-   * Questo permette di avere i dati già pronti quando l'utente arriva alla dashboard
+   * PRE-LOADING: Loads first page of vehicles during login
+   * This allows having data ready when user arrives at dashboard
    */
   private preloadFirstPage(): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('[LOGIN] Pre-caricamento completo: dashboard + mappa...');
+      console.log('[LOGIN] Complete pre-loading: dashboard + map...');
 
-      // Eseguo entrambi i precaricamenti in parallelo per ottimizzare i tempi
+      // Perform both preloads in parallel to optimize timing
       const dashboardPreload = this.preloadDashboardData();
       const mapPreload = this.preloadMapData();
 
       Promise.all([dashboardPreload, mapPreload])
         .then(() => {
-          console.log('[LOGIN] Pre-caricamento completo terminato con successo');
+          console.log('[LOGIN] Complete pre-loading finished successfully');
           resolve();
         })
         .catch((error) => {
-          console.warn('[LOGIN] Errore nel pre-caricamento (non bloccante):', error);
-          // Non blocchiamo il login se il pre-caricamento fallisce
+          console.warn('[LOGIN] Error in pre-loading (non-blocking):', error);
+          // Don't block login if pre-loading fails
           resolve();
         });
     });
   }
 
   /**
-   * Precarica i dati per la dashboard (prima pagina veicoli)
+   * Preloads data for dashboard (first page of vehicles)
    */
   private preloadDashboardData(): Promise<void> {
     return new Promise((resolve) => {
-      console.log('[LOGIN] Pre-caricamento dashboard...');
+      console.log('[LOGIN] Dashboard pre-loading...');
 
       this.veicleService.getListVeicle(1, 10).subscribe({
         next: (response) => {
-          // Salva i dati pre-caricati nel localStorage per il dashboard
+          // Save pre-loaded data to localStorage for dashboard
           const preloadData = {
             page: response.page,
             items: response.items,
@@ -170,27 +170,27 @@ export class UserService {
           };
 
           localStorage.setItem('preloadedFirstPage', JSON.stringify(preloadData));
-          console.log(`[LOGIN] Dashboard pre-caricata: ${response.items.length} veicoli`);
+          console.log(`[LOGIN] Dashboard pre-loaded: ${response.items.length} vehicles`);
           resolve();
         },
         error: (error) => {
-          console.warn('[LOGIN] Errore pre-caricamento dashboard:', error);
-          resolve(); // Non bloccare il login
+          console.warn('[LOGIN] Dashboard pre-loading error:', error);
+          resolve(); // Don't block login
         },
       });
     });
   }
 
   /**
-   * Precarica tutti i veicoli per la mappa generale
+   * Preloads all vehicles for general map
    */
   private preloadMapData(): Promise<void> {
     return new Promise((resolve) => {
-      console.log('[LOGIN] Pre-caricamento mappa generale...');
+      console.log('[LOGIN] General map pre-loading...');
 
       this.veicleService.getAllVeicles().subscribe({
         next: (response) => {
-          // Salva i dati completi per la mappa nel localStorage
+          // Save complete data for map to localStorage
           const mapPreloadData = {
             items: response.items,
             totalCount: response.totalCount,
@@ -198,12 +198,12 @@ export class UserService {
           };
 
           localStorage.setItem('preloadedMapData', JSON.stringify(mapPreloadData));
-          console.log(`[LOGIN] Mappa pre-caricata: ${response.items.length} veicoli totali`);
+          console.log(`[LOGIN] Map pre-loaded: ${response.items.length} total vehicles`);
           resolve();
         },
         error: (error) => {
-          console.warn('[LOGIN] Errore pre-caricamento mappa:', error);
-          resolve(); // Non bloccare il login
+          console.warn('[LOGIN] Map pre-loading error:', error);
+          resolve(); // Don't block login
         },
       });
     });

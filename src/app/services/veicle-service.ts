@@ -15,7 +15,7 @@ export class VeicleService {
   constructor() {}
 
   /**
-   * Ottiene l'URL dinamico per i veicoli dalla configurazione
+   * Gets dynamic URL for vehicles from configuration
    */
   private getVehiclesUrl(): string {
     return this.configService.getApiUrl('vehicles');
@@ -26,20 +26,20 @@ export class VeicleService {
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
 
-    // Usa URL dinamico dalla configurazione
+    // Use dynamic URL from configuration
     const url = this.getVehiclesUrl();
-    console.log('[VEICLE-SERVICE] Chiamata API a:', url);
+    console.log('[VEICLE-SERVICE] API call to:', url);
 
     return this.http.get<IVeicleResponse>(url, { params });
   }
 
-  // Metodo per recuperare tutti i veicoli senza paginazione per la ricerca globale
+  // Method to retrieve all vehicles without pagination for global search
   getAllVeicles(): Observable<IVeicleResponse> {
-    const params = new HttpParams().set('page', '1').set('pageSize', '10000'); // Numero molto alto per ottenere tutti i record
+    const params = new HttpParams().set('page', '1').set('pageSize', '10000'); // Very high number to get all records
 
-    // Usa URL dinamico dalla configurazione
+    // Use dynamic URL from configuration
     const url = this.getVehiclesUrl();
-    console.log('[VEICLE-SERVICE] Chiamata API (tutti i veicoli) a:', url);
+    console.log('[VEICLE-SERVICE] API call (all vehicles) to:', url);
 
     return this.http.get<IVeicleResponse>(url, { params });
   }
