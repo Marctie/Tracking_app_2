@@ -211,10 +211,13 @@ tr {
   z-index: 1000;
   width: 100%;
   max-width: 1200px;
+  height: 90vh;
   max-height: 90vh;
   font-family: 'Inter', 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   //ombra 
   box-shadow: 
@@ -250,14 +253,15 @@ tr {
 .modal-body {
   display: flex;
   gap: 2rem;
-  margin-bottom: 2rem;
-  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
 }
 
 /* Mappa a sinistra */
 .map-container {
   flex: 1.4;
-  min-height: 350px;
+  height: 100%;
   background: #f8fafc;
   border-radius: 16px;
   padding: 1.5rem;
@@ -275,21 +279,52 @@ tr {
 /* Dettagli a destra */
 .details-container {
   flex: 1;
-  min-height: 350px;
+  height: 100%;
   background: #fff;
   border-radius: 16px;
   padding: 1.5rem;
   box-sizing: border-box;
   color: #0f172a;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Mappa Leaflet - Allineamento perfetto con contenitore */
+#map {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Fix per gli angoli dei controlli Leaflet */
+.map-container .leaflet-container {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-container .leaflet-control-container {
+  position: relative;
+}
+
+.map-container .leaflet-top,
+.map-container .leaflet-bottom {
+  z-index: 100;
+}
+
+.map-container .leaflet-control {
+  margin: 8px;
 }
 
 /* Azioni */
 .actions {
   text-align: center;
   margin-top: 1.5rem;
+  flex-shrink: 0;
 }
 
 /* Pulsanti */
@@ -460,19 +495,20 @@ tr {
   .alert-container {
     max-width: 95%;
     padding: 2rem;
+    height: 95vh;
   }
   
   .modal-body {
     gap: 1.5rem;
   }
-  
-  .map-container, .details-container {
-    min-height: 320px;
-  }
 }
 
 /* Media query specifica per 752px e schermi simili - Mantiene la mappa sempre visibile */
 @media (max-width: 752px) {
+  .alert-container {
+    height: 95vh;
+  }
+  
   .map-container {
     display: flex !important;
     visibility: visible !important;
@@ -481,6 +517,12 @@ tr {
     height: auto !important;
     flex: none !important;
     width: 100% !important;
+  }
+  
+  .details-container {
+    flex: 1;
+    height: auto;
+    min-height: 300px;
   }
   
   .modal-body {
@@ -503,6 +545,7 @@ tr {
   
   .alert-container {
     padding: 1.5rem;
+    height: 95vh;
     max-height: 95vh;
   }
   
@@ -516,14 +559,17 @@ tr {
   }
   
   .map-container {
-    min-height: 470px !important;
+    height: 40%;
+    min-height: 300px;
     flex: none;
     width: 100%;
     order: 1;
   }
   
   .details-container {
-    min-height: auto;
+    flex: 1;
+    height: auto;
+    min-height: 200px;
     order: 2;
   }
 }
@@ -535,6 +581,7 @@ tr {
   
   .alert-container {
     padding: 1.5rem;
+    height: 95vh;
     max-height: 95vh;
   }
   
@@ -552,8 +599,16 @@ tr {
     gap: 1rem;
   }
   
-  .map-container, .details-container {
-    min-height: 250px;
+  .map-container {
+    height: 35%;
+    min-height: 200px;
+    flex: none;
+  }
+  
+  .details-container {
+    flex: 1;
+    height: auto;
+    min-height: 150px;
   }
   
   /* Responsive per storico posizioni */
@@ -586,14 +641,25 @@ tr {
 @media (max-width: 480px) {
   .alert-container {
     padding: 0.75rem;
+    height: 98vh;
+    max-height: 98vh;
   }
   
   .alert-title {
     font-size: 1.125rem;
   }
   
-  .map-container, .details-container {
-    min-height: 200px;
+  .map-container {
+    height: 30%;
+    min-height: 150px;
+    padding: 0.75rem;
+    flex: none;
+  }
+  
+  .details-container {
+    flex: 1;
+    height: auto;
+    min-height: 120px;
     padding: 0.75rem;
   }
   

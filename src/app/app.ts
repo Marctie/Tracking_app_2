@@ -48,7 +48,7 @@ export class App implements OnInit {
     }
   }
   logout() {
-    if (confirm('Sei sicuro di voler effettuare il logout? Annullando rimarrai in sessione')) {
+    if (confirm('Are you sure you want to log out? Canceling will keep you logged in.')) {
       this.userService.logout();
       localStorage.removeItem('tokenExp');
     }
