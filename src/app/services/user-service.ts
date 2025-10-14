@@ -3,9 +3,9 @@ import { inject, Injectable, Signal, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ILogin } from '../models/login';
 import { IAuthResponse } from '../models/auth-response';
-import { LOGINURL, LOGOUTURL } from '../models/constants';
 import { VeicleService } from './veicle-service';
 import { Subject } from 'rxjs';
+import { ConfigService } from './config.service';
 
 @Injectable({
   providedIn: 'root',
@@ -19,14 +19,32 @@ export class UserService {
   router = inject(Router);
   firstName = signal<string>('');
   veicleService = inject(VeicleService); // Servizio per pre-caricamento
+  private configService = inject(ConfigService);
 
   // Subject per comunicare fine caricamento al componente Login
   loginCompleted$ = new Subject<boolean>();
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Ottiene l'URL dinamico per il login dalla configurazione
+   */
+  private getLoginUrl(): string {
+    return this.configService.getApiUrl('auth') + '/login';
+  }
+
+  /**
+   * Ottiene l'URL dinamico per il logout dalla configurazione
+   */
+  private getLogoutUrl(): string {
+    return this.configService.getApiUrl('auth') + '/logout';
+  }
+
   login(user: ILogin) {
-    this.http.post<IAuthResponse>(LOGINURL, user).subscribe({
+    const loginUrl = this.getLoginUrl();
+    console.log('[USER-SERVICE] Login URL:', loginUrl);
+
+    this.http.post<IAuthResponse>(loginUrl, user).subscribe({
       next: (response) => {
         this.firstName.set(response.firstName);
 
@@ -63,7 +81,10 @@ export class UserService {
   }
 
   logout() {
-    this.http.post(LOGOUTURL, '').subscribe({
+    const logoutUrl = this.getLogoutUrl();
+    console.log('[USER-SERVICE] Logout URL:', logoutUrl);
+
+    this.http.post(logoutUrl, '').subscribe({
       next: (response) => {
         console.log('logout effettuato', response);
 

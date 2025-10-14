@@ -14,6 +14,7 @@ import { Veicles } from '../../models/veicles';
 import { VeicleService } from '../../services/veicle-service';
 import { MyMqttService } from '../../services/mymqtt-service';
 import { Router } from '@angular/router';
+import { ConfigService } from '../../services/config.service';
 
 @Component({
   selector: 'app-general-map',
@@ -448,13 +449,13 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   // Input per ricevere il veicolo selezionato dal componente padre
   selectedVeicle = input<Veicles>();
 
-  // Timer per l'aggiornamento automatico ogni 5 secondi
+  // Timer per l'aggiornamento automatico configurabile
   private autoUpdateInterval: any = null;
-  private readonly UPDATE_INTERVAL = 5000; // 5 secondi in millisecondi
 
   // Injection dei servizi e signal per i dati
   private veicleService = inject(VeicleService); // Servizio per dati dal database
   public mqttService = inject(MyMqttService); // Servizio per dati MQTT (pubblico per template)
+  private configService = inject(ConfigService); // Servizio per configurazione dinamica
   veicleList = signal<Veicles[]>([]);
 
   // Mappa dei colori per gli stati dei veicoli
@@ -508,12 +509,14 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   private startAutoUpdate(): void {
     this.stopAutoUpdate();
 
-    console.log('Avvio aggiornamento automatico ogni 5 secondi');
+    // Ottieni l'intervallo di aggiornamento dalla configurazione
+    const updateInterval = this.configService.getAutoRefreshInterval();
+    console.log(`[GENERAL-MAP] Avvio aggiornamento automatico ogni ${updateInterval}ms`);
 
     this.autoUpdateInterval = setInterval(() => {
-      console.log('Aggiornamento automatico posizioni veicoli...');
+      console.log('[GENERAL-MAP] Esecuzione aggiornamento automatico posizioni veicoli');
       this.loadVeicles(true); // Preserva la vista della mappa durante l'auto-update
-    }, this.UPDATE_INTERVAL);
+    }, updateInterval);
   }
 
   private stopAutoUpdate(): void {
