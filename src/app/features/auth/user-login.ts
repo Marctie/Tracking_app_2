@@ -60,7 +60,7 @@ import { Subscription } from 'rxjs';
               [disabled]="!loginform.valid || isLoading()"
             >
               @if (isLoading()) {
-              <span class="btn-loading">⟳</span>
+              <span class="btn-loading">Loading...</span>
               } @else { Accedi }
             </button>
             <button

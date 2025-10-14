@@ -728,6 +728,8 @@ export class Dashboard implements OnInit {
     console.log('[DASHBOARD] Inizializzazione componente dashboard');
     this.loadVeicles();
     this.loadUserName();
+    //TEST da cancellare
+    // this.veicleService.getAnimali();
   }
 
   /**

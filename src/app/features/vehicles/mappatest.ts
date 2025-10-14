@@ -37,13 +37,13 @@ import { VeiclePosition } from '../../models/veicle-position';
     <div class="map-container">
       <!-- Header della mappa con titolo e controlli -->
       <div class="map-header">
-        <h2>🗺️ Mappa Veicoli in Tempo Reale</h2>
+        <h2>Mappa Veicoli in Tempo Reale</h2>
         <div class="header-controls">
-          <span class="auto-update-indicator"> 🔄 Aggiornamento automatico ogni 5s </span>
+          <span class="auto-update-indicator">Aggiornamento automatico ogni 5s</span>
           <div class="control-buttons">
-            <button class="refresh-btn primary" (click)="refreshVeicles()">🔄 Ricarica Dati</button>
+            <button class="refresh-btn primary" (click)="refreshVeicles()">Ricarica Dati</button>
             <button class="mqtt-refresh-btn secondary" (click)="refreshAllVehiclesWithMqtt()">
-              📡 Aggiorna MQTT
+              Aggiorna MQTT
             </button>
           </div>
         </div>
@@ -52,8 +52,8 @@ import { VeiclePosition } from '../../models/veicle-position';
       <!-- Descrizione funzionalità -->
       <div class="description">
         <p>
-          📍 Visualizzazione delle posizioni dei veicoli dal database con aggiornamenti MQTT in
-          tempo reale. I marker colorati indicano lo stato di ogni veicolo.
+          Visualizzazione delle posizioni dei veicoli dal database con aggiornamenti MQTT in tempo
+          reale. I marker colorati indicano lo stato di ogni veicolo.
         </p>
       </div>
 
@@ -61,7 +61,7 @@ import { VeiclePosition } from '../../models/veicle-position';
       <div class="stats-section">
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon">🚗</div>
+            <div class="stat-icon">CAR</div>
             <div class="stat-content">
               <span class="stat-label">Veicoli Totali</span>
               <span class="stat-value">{{ veicleList().length }}</span>
@@ -69,7 +69,7 @@ import { VeiclePosition } from '../../models/veicle-position';
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">📍</div>
+            <div class="stat-icon">LOC</div>
             <div class="stat-content">
               <span class="stat-label">Con Posizione</span>
               <span class="stat-value">{{ getVeiclesWithPosition() }}</span>
@@ -77,7 +77,7 @@ import { VeiclePosition } from '../../models/veicle-position';
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">📡</div>
+            <div class="stat-icon">MQTT</div>
             <div class="stat-content">
               <span class="stat-label">Dati MQTT</span>
               <span class="stat-value">{{ mqttService.positionVeiclesList().length }}</span>
@@ -88,7 +88,7 @@ import { VeiclePosition } from '../../models/veicle-position';
 
       <!-- Legenda stati veicoli -->
       <div class="legend-section">
-        <h4>🎨 Legenda Stati Veicoli</h4>
+        <h4>Legenda Stati Veicoli</h4>
         <div class="legend-grid">
           <div class="legend-item">
             <div class="legend-color online"></div>
@@ -111,12 +111,12 @@ import { VeiclePosition } from '../../models/veicle-position';
 
       <!-- MODALITÀ SVILUPPATORE - 5 BOX VEICOLI -->
       <div class="developer-section">
-        <h4>🔧 Modalità Sviluppatore - Primi 5 Veicoli</h4>
+        <h4>Modalità Sviluppatore - Primi 5 Veicoli</h4>
         <div class="developer-grid">
           @for (vehicle of getFirst5Vehicles(); track vehicle.id) {
           <div class="developer-box">
             <div class="developer-header">
-              <h5>🚗 {{ vehicle.licensePlate }}</h5>
+              <h5>{{ vehicle.licensePlate }}</h5>
               <span class="status-badge" [style.background-color]="getStatusColor(vehicle.status)">
                 {{ vehicle.status }}
               </span>
@@ -124,51 +124,51 @@ import { VeiclePosition } from '../../models/veicle-position';
 
             <div class="developer-content">
               <div class="detail-row">
-                <span class="label">🆔 ID:</span>
+                <span class="label">ID:</span>
                 <span class="value">{{ vehicle.id }}</span>
               </div>
 
               <div class="detail-row">
-                <span class="label">🏭 Modello:</span>
+                <span class="label">Modello:</span>
                 <span class="value">{{ vehicle.model }}</span>
               </div>
 
               <div class="detail-row">
-                <span class="label">🏢 Marca:</span>
+                <span class="label">Marca:</span>
                 <span class="value">{{ vehicle.brand }}</span>
               </div>
 
               <div class="detail-row">
-                <span class="label">📅 Creato:</span>
+                <span class="label">Creato:</span>
                 <span class="value">{{ formatDate(vehicle.createdAt) }}</span>
               </div>
 
               @if (vehicle.lastPosition) {
               <div class="position-section">
-                <h6>📍 Ultima Posizione:</h6>
+                <h6>Ultima Posizione:</h6>
                 <div class="detail-row">
-                  <span class="label">🌍 Lat:</span>
+                  <span class="label">Lat:</span>
                   <span class="value">{{ vehicle.lastPosition.latitude.toFixed(6) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">🌍 Lng:</span>
+                  <span class="label">Lng:</span>
                   <span class="value">{{ vehicle.lastPosition.longitude.toFixed(6) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">⚡ Velocità:</span>
+                  <span class="label">Velocità:</span>
                   <span class="value">{{ vehicle.lastPosition.speed }} km/h</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">🧭 Direzione:</span>
+                  <span class="label">Direzione:</span>
                   <span class="value">{{ vehicle.lastPosition.heading }}°</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">🕒 Timestamp:</span>
+                  <span class="label">Timestamp:</span>
                   <span class="value">{{ formatDate(vehicle.lastPosition.timestamp) }}</span>
                 </div>
               </div>
               } @else {
-              <div class="no-position">❌ Nessuna posizione disponibile</div>
+              <div class="no-position">Nessuna posizione disponibile</div>
               }
 
               <div class="developer-actions">
@@ -179,10 +179,10 @@ import { VeiclePosition } from '../../models/veicle-position';
                   (click)="goToVehicleOnMap(vehicle)"
                   title="Vai alla posizione del veicolo sulla mappa"
                 >
-                  🗺️ Vai sulla Mappa
+                  Vai sulla Mappa
                 </button>
                 } @else {
-                <button class="map-btn disabled" disabled>🚫 Posizione non disponibile</button>
+                <button class="map-btn disabled" disabled>Posizione non disponibile</button>
                 }
               </div>
             </div>
@@ -871,7 +871,7 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
           color: white;
           font-weight: bold;
         ">
-          🚗
+          CAR
         </div>
       `,
       iconSize: [26, 26],
@@ -901,7 +901,7 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
     const popupContent = `
       <div style="font-family: Arial, sans-serif; min-width: 250px;">
         <h4 style="margin: 0 0 10px 0; color: #007bff; text-align: center;">
-          🚗 ${veicle.licensePlate}
+          ${veicle.licensePlate}
         </h4>
         
         <!-- Indicatore dello stato del veicolo -->
@@ -916,7 +916,7 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
           font-weight: bold;
           text-transform: uppercase;
         ">
-          📊 STATO: ${veicle.status}
+          STATO: ${veicle.status}
         </div>
         
         <!-- Fonte dei dati -->
@@ -929,20 +929,20 @@ export class Mappatest implements AfterViewInit, OnInit, OnDestroy {
           margin-bottom: 10px;
           text-align: center;
         ">
-          📡 FONTE: ${dataSource}
+          FONTE: ${dataSource}
         </div>
         
         <div style="display: grid; gap: 6px;">
-          <div><strong>🏭 Modello:</strong> ${veicle.model}</div>
-          <div><strong>🏢 Marca:</strong> ${veicle.brand}</div>
-          <div><strong>⚡ Velocità:</strong> ${position.speed} km/h</div>
-          <div><strong>🧭 Direzione:</strong> ${position.heading}°</div>
-          <div><strong>📍 Coordinate:</strong><br>
+          <div><strong>Modello:</strong> ${veicle.model}</div>
+          <div><strong>Marca:</strong> ${veicle.brand}</div>
+          <div><strong>Velocità:</strong> ${position.speed} km/h</div>
+          <div><strong>Direzione:</strong> ${position.heading}°</div>
+          <div><strong>Coordinate:</strong><br>
             &nbsp;&nbsp;Lat: ${position.latitude.toFixed(6)}<br>
             &nbsp;&nbsp;Lng: ${position.longitude.toFixed(6)}
           </div>
           <div style="font-size: 11px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-            <strong>🕒 Ultimo aggiornamento:</strong><br>
+            <strong>Ultimo aggiornamento:</strong><br>
             ${this.formatDate(position.timestamp)}
           </div>
         </div>

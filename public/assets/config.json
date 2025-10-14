@@ -9,7 +9,6 @@
     "endpoints": {
       "vehicles": "/api/Vehicles",
       "positions": "/api/positions", 
-      
       "users": "/api/users",
       "auth": "/api/Auth",
         "logout": "/api/Auth/logout",

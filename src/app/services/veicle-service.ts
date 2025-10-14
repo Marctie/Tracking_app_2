@@ -43,4 +43,13 @@ export class VeicleService {
 
     return this.http.get<IVeicleResponse>(url, { params });
   }
+
+  //TEST DA CANCELLARE 
+  // getAnimali() {
+  //   return this.http.get<IVeicleResponse>(this.configService.getConfig().apiBaseUrl).subscribe({
+  //     next: (response) => {
+  //       console.log('Animali response:', response);
+  //     },
+  //   });
+  // }
 }

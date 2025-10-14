@@ -28,7 +28,7 @@ import { MyMqttService } from '../../services/mymqtt-service';
             aria-label="Clear"
             [style.opacity]="searchText() ? '1' : '0.5'"
           >
-            ✕
+            ×
           </button>
         </div>
         <div class="select-wrap">
@@ -45,7 +45,8 @@ import { MyMqttService } from '../../services/mymqtt-service';
         </div>
         <button class="btn" (click)="goMapGen()" [disabled]="isMapLoading()">
           @if (isMapLoading()) {
-          <span class="btn-loading">⟳</span> Preparing map... } @else { Go to complete vehicle map }
+          <span class="btn-loading">Loading...</span> Preparing map... } @else { Go to complete
+          vehicle map }
         </button>
 
         <!-- <div class="status-indicator" [class.searching]="isSearching()">
