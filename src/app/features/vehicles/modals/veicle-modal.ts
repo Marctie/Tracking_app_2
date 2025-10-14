@@ -75,6 +75,12 @@ import { Router } from '@angular/router';
                       <span>{{ position.latitude }}, {{ position.longitude }}</span>
                     </div>
                     <div>
+                      <strong>Address</strong>
+                      <span class="address-info">{{
+                        getAddressForPosition(position.latitude, position.longitude)
+                      }}</span>
+                    </div>
+                    <div>
                       <strong>Speed</strong>
                       <span>{{ position.speed || 0 }} km/h</span>
                     </div>
@@ -94,6 +100,15 @@ import { Router } from '@angular/router';
                 <div class="position-info">
                   Lat: {{ selectedVeicle()?.lastPosition?.latitude }}<br />
                   Lng: {{ selectedVeicle()?.lastPosition?.longitude }}
+                </div>
+                <div class="address-info">
+                  <strong>Current Address:</strong><br />
+                  {{
+                    getAddressForPosition(
+                      selectedVeicle()?.lastPosition?.latitude!,
+                      selectedVeicle()?.lastPosition?.longitude!
+                    )
+                  }}
                 </div>
                 }
               </div>
@@ -321,10 +336,14 @@ tr {
 
 /* Stili per lo storico posizioni - Tema coerente con il progetto */
 .position-history-section {
-  padding: 16px 24px;
+  width: 100%;
+  max-width: 100%;
+  padding: 16px 20px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 16px;
   border-top: 2px solid #e5e7eb;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .position-history-section h4 {
@@ -367,14 +386,18 @@ tr {
 }
 
 .selected-position-details {
+  width: 100%;
+  max-width: 100%;
   margin-top: 1.5rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   background: var(--card-bg, #fff);
   border: 2px solid #e5e7eb;
   border-radius: 16px;
   box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
   border-left: 4px solid #2563eb;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .selected-position-details:hover {
@@ -385,17 +408,24 @@ tr {
 .history-position-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  gap: 1rem;
   font-size: 0.9rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .history-position-info > div {
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding: 0.875rem;
   background: #f8fafc;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+  overflow: hidden;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 .history-position-info strong {
@@ -411,6 +441,10 @@ tr {
   color: var(--text, #0f172a);
   font-weight: 500;
   font-size: 0.95rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
 }
 
 .history-position-info .time-ago {
@@ -418,6 +452,7 @@ tr {
   font-size: 0.8rem;
   font-style: italic;
   margin-top: 0.5rem;
+  word-break: normal;
 }
 
 /* Responsive Design */
@@ -522,8 +557,29 @@ tr {
   }
   
   /* Responsive per storico posizioni */
+  .position-history-section {
+    padding: 12px 16px;
+  }
+  
+  .selected-position-details {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  
   .history-position-info {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .history-position-info > div {
+    padding: 0.75rem;
+  }
+  
+  /* Indirizzi responsive per tablet */
+  .history-position-info .address-info {
+    padding: 6px 8px;
+    font-size: clamp(0.6875rem, 1.8vw, 0.75rem);
+    margin-top: 3px;
   }
 }
 
@@ -541,11 +597,109 @@ tr {
     padding: 0.75rem;
   }
   
+  /* Position history ottimizzato per mobile piccolo */
+  .position-history-section {
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
+  
+  .position-history-section h4 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .position-history-dropdown {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .selected-position-details {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    border-radius: 12px;
+  }
+  
+  .history-position-info {
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+  }
+  
+  .history-position-info > div {
+    padding: 0.625rem;
+  }
+  
+  /* Indirizzi responsive per mobile piccolo */
+  .history-position-info .address-info {
+    padding: 4px 6px;
+    font-size: clamp(0.625rem, 1.6vw, 0.6875rem);
+    margin-top: 2px;
+    border-radius: 4px;
+  }
+  
   .blackbtn, .refresh-btn {
     padding: 0.5rem 1rem;
     font-size: clamp(0.8125rem, 2.2vw, 0.9375rem);
     font-weight: 600;
     font-family: inherit;
+  }
+}
+
+/* Stili per le informazioni degli indirizzi */
+.address-info {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  font-size: clamp(0.875rem, 2.2vw, 0.9375rem);
+  color: #495057;
+  line-height: 1.5;
+  font-family: inherit;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Indirizzi specifici per position history */
+.history-position-info .address-info {
+  margin-top: 4px;
+  padding: 8px 10px;
+  font-size: clamp(0.75rem, 2vw, 0.8125rem);
+  border-radius: 6px;
+  background: #e7f3ff;
+  border-color: #bde0ff;
+}
+
+.address-info strong {
+  color: #007bff;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Stato di caricamento per gli indirizzi */
+.address-info:has-text("Loading address...") {
+  background: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+  font-style: italic;
+}
+
+/* Responsive per indirizzi */
+@media (max-width: 768px) {
+  .address-info {
+    padding: 10px;
+    font-size: clamp(0.8125rem, 2vw, 0.875rem);
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .address-info {
+    padding: 8px;
+    font-size: clamp(0.75rem, 1.8vw, 0.8125rem);
   }
 }
     `,
@@ -563,6 +717,10 @@ export class VeicleModal implements OnInit, AfterViewInit {
   // Proprietà per lo storico posizioni
   positionHistory = signal<VeiclePosition[]>([]);
   selectedHistoryPosition: string = '';
+
+  // Cache per gli indirizzi delle posizioni (reverse geocoding)
+  addressCache = signal<Map<string, string>>(new Map());
+  loadingAddresses = signal<Set<string>>(new Set());
 
   // Elementi della mappa
   @ViewChild('leafletMap')
@@ -905,6 +1063,52 @@ export class VeicleModal implements OnInit, AfterViewInit {
 
     this.positionHistory.set(mockHistory);
     console.log('[MODAL] Storico posizioni caricato:', mockHistory.length, 'posizioni');
+
+    // Pre-carica gli indirizzi per tutte le posizioni in background
+    this.preloadAddresses(mockHistory);
+  }
+
+  /**
+   * Pre-carica gli indirizzi per tutte le posizioni dello storico
+   */
+  private async preloadAddresses(positions: VeiclePosition[]): Promise<void> {
+    console.log('[MODAL] Pre-caricamento indirizzi avviato per', positions.length, 'posizioni');
+
+    // Aggiungi anche la posizione corrente se esiste
+    const currentPos = this.selectedVeicle()?.lastPosition;
+    if (currentPos) {
+      positions = [
+        ...positions,
+        {
+          vehicleId: this.selectedVeicle()!.id,
+          latitude: currentPos.latitude,
+          longitude: currentPos.longitude,
+          speed: currentPos.speed || 0,
+          heading: currentPos.heading || 0,
+          timestamp: new Date(),
+          status: 'active',
+        },
+      ];
+    }
+
+    // Carica gli indirizzi in parallelo (massimo 3 alla volta per non sovraccaricare il servizio)
+    const batchSize = 3;
+    for (let i = 0; i < positions.length; i += batchSize) {
+      const batch = positions.slice(i, i + batchSize);
+      const promises = batch.map((pos) => this.reverseGeocode(pos.latitude, pos.longitude));
+
+      try {
+        await Promise.all(promises);
+        // Piccola pausa tra i batch per essere gentili con il servizio
+        if (i + batchSize < positions.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        console.warn('[MODAL] Errore nel pre-caricamento batch indirizzi:', error);
+      }
+    }
+
+    console.log('[MODAL] Pre-caricamento indirizzi completato');
   }
 
   /**
@@ -965,5 +1169,117 @@ export class VeicleModal implements OnInit, AfterViewInit {
     if (hours > 0) return `${hours} ore fa`;
     if (minutes > 0) return `${minutes} minuti fa`;
     return 'Ora';
+  }
+
+  /**
+   * Esegue il reverse geocoding per ottenere l'indirizzo dalle coordinate
+   */
+  async reverseGeocode(latitude: number, longitude: number): Promise<string> {
+    const key = `${latitude},${longitude}`;
+
+    // Verifica se l'indirizzo è già in cache
+    const cached = this.addressCache().get(key);
+    if (cached) {
+      return cached;
+    }
+
+    // Verifica se stiamo già caricando questo indirizzo
+    if (this.loadingAddresses().has(key)) {
+      return 'Loading address...';
+    }
+
+    try {
+      // Aggiungi alla lista di caricamento
+      this.loadingAddresses.update((loading) => {
+        const newSet = new Set(loading);
+        newSet.add(key);
+        return newSet;
+      });
+
+      // Usa Nominatim OpenStreetMap per il reverse geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'VehicleTrackingApp/1.0 (your-email@example.com)',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Reverse geocoding failed');
+      }
+
+      const data = await response.json();
+
+      // Estrai l'indirizzo formattato
+      let address = 'Address not available';
+
+      if (data.display_name) {
+        // Prova a costruire un indirizzo più leggibile
+        const addr = data.address;
+        if (addr) {
+          const parts = [];
+          if (addr.road) parts.push(addr.road);
+          if (addr.house_number) parts.push(addr.house_number);
+          if (addr.city || addr.town || addr.village) {
+            parts.push(addr.city || addr.town || addr.village);
+          }
+          if (addr.country) parts.push(addr.country);
+
+          address = parts.length > 0 ? parts.join(', ') : data.display_name;
+        } else {
+          address = data.display_name;
+        }
+      }
+
+      // Salva in cache
+      this.addressCache.update((cache) => {
+        const newCache = new Map(cache);
+        newCache.set(key, address);
+        return newCache;
+      });
+
+      return address;
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      const errorMsg = 'Unable to load address';
+
+      // Salva l'errore in cache per evitare nuove richieste
+      this.addressCache.update((cache) => {
+        const newCache = new Map(cache);
+        newCache.set(key, errorMsg);
+        return newCache;
+      });
+
+      return errorMsg;
+    } finally {
+      // Rimuovi dalla lista di caricamento
+      this.loadingAddresses.update((loading) => {
+        const newSet = new Set(loading);
+        newSet.delete(key);
+        return newSet;
+      });
+    }
+  }
+
+  /**
+   * Ottiene l'indirizzo per una posizione (con cache)
+   */
+  getAddressForPosition(latitude: number, longitude: number): string {
+    const key = `${latitude},${longitude}`;
+    const cached = this.addressCache().get(key);
+
+    if (cached) {
+      return cached;
+    }
+
+    if (this.loadingAddresses().has(key)) {
+      return 'Loading address...';
+    }
+
+    // Avvia il reverse geocoding in background
+    this.reverseGeocode(latitude, longitude);
+    return 'Loading address...';
   }
 }
