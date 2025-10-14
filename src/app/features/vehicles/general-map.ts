@@ -91,12 +91,12 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
           </div>
 
           <!-- Veicoli in manutenzione -->
-          <!-- <div class="stat-card maintenance-status">
+           <div class="stat-card maintenance-status">
             <div class="stat-content">
               <span class="stat-label">Manutenzione</span>
               <span class="stat-value">{{ getVeiclesMaintenance() }}</span>
             </div>
-          </div> -->
+          </div> 
         </div>
       </div>
 
@@ -761,53 +761,30 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadVeicles(preserveMapView: boolean = false): void {
-    console.log('[GENERAL-MAP] Caricamento di tutti i veicoli per la visualizzazione generale');
-
-    // Per la mappa generale, richiediamo TUTTI i veicoli con pageSize molto alto
     this.veicleService.getListVeicle(1, 1000).subscribe((response) => {
-      console.log(
-        '[GENERAL-MAP] Veicoli caricati dal server:',
-        response.items.length,
-        'di',
-        response.totalCount,
-        'totali'
-      );
-
       const mqttPositions = this.mqttService.positionVeiclesList();
-      console.log('[GENERAL-MAP] Posizioni MQTT disponibili nel servizio:', mqttPositions.length);
+      const statusesById = this.mqttService.statusById(); // ← stati correnti
 
-      // Analisi dati MQTT per debugging
-      if (mqttPositions.length > 0) {
-        console.log('[GENERAL-MAP] Analisi dati MQTT ricevuti:');
-        mqttPositions.forEach((mqttData, index) => {
-          console.log(
-            '[GENERAL-MAP] Posizione MQTT',
-            index + 1,
-            '- Veicolo ID:',
-            mqttData.vehicleId,
-            '- Proprieta disponibili:',
-            Object.keys(mqttData).length
-          );
-        });
-      } else {
-        console.log('[GENERAL-MAP] Nessun dato MQTT disponibile al momento');
-      }
+      const updatedVeicles = response.items.map((v) => {
+        // posizione: come già fai
+        const p = mqttPositions.find((mp) => mp.vehicleId === v.id);
+        let next = { ...v };
 
-      const updatedVeicles = this.mergeVeiclesWithMqttData(response.items, mqttPositions);
+        if (p) {
+          const tPos = new Date(p.timestamp).getTime();
+          const tDb = new Date(v.lastPosition?.timestamp ?? 0).getTime();
+          if (tPos > tDb) next.lastPosition = p;
+        }
+
+        // ★ stato: prendi dal service e normalizza
+        const s = statusesById[v.id]?.status;
+        if (s) next.status = this.normalizeStatus(s);
+
+        return next;
+      });
 
       this.veicleList.set(updatedVeicles);
-      console.log(
-        '[GENERAL-MAP] Lista veicoli aggiornata con integrazione MQTT - Totale veicoli:',
-        updatedVeicles.length
-      );
-
-      if (this.map) {
-        console.log(
-          '[GENERAL-MAP] Aggiornamento marker -',
-          preserveMapView ? 'Vista PRESERVATA' : 'Vista CENTRATA'
-        );
-        this.addVeicleMarkers(preserveMapView);
-      }
+      if (this.map) this.addVeicleMarkers(preserveMapView);
     });
   }
 
@@ -1162,7 +1139,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       iconAnchor: [13, 13],
       popupAnchor: [0, -13],
     });
-
     // Crea il marker con l'icona personalizzata
     const marker = L.marker([position.latitude, position.longitude], {
       icon: customIcon,
@@ -1238,15 +1214,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    * @returns Il colore esadecimale corrispondente allo stato
    */
   private getStatusColor(status: string): string {
-    // Normalizza lo stato a lowercase per il confronto
     const normalizedStatus = status?.toLowerCase().trim() || 'unknown';
 
-    // Cerca una corrispondenza diretta
     if (this.statusColorMap[normalizedStatus]) {
       return this.statusColorMap[normalizedStatus];
     }
 
-    // Cerca corrispondenze parziali per stati compositi
     for (const [key, color] of Object.entries(this.statusColorMap)) {
       if (normalizedStatus.includes(key)) {
         return color;
@@ -1278,6 +1251,12 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       minute: '2-digit',
       second: '2-digit',
     });
+  }
+    private normalizeStatus(s: string): string {
+    const v = (s ?? '').toLowerCase().trim();
+    if (v === 'online') return 'active';
+    if (v === 'offline') return 'inactive';
+    return v;
   }
 
   /**
@@ -1366,17 +1345,14 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       const position = mqttPositions.find((pos) => pos.vehicleId === vehicleId);
 
       if (position) {
-        console.log(
-          '[GENERAL-MAP] Posizione recuperata dal servizio MQTT per veicolo ID:',
-          vehicleId
-        );
+        console.log(`Posizione trovata nel service per veicolo ID ${vehicleId}`);
         return position;
       }
 
-      console.log('[GENERAL-MAP] Nessuna posizione MQTT disponibile per veicolo ID:', vehicleId);
+      console.log(`Nessuna posizione per veicolo ID ${vehicleId}`);
       return null;
     } catch (error) {
-      console.error('[GENERAL-MAP] Errore durante la ricerca posizione MQTT:', error);
+      console.error('Errore durante la ricerca ', error);
       return null;
     }
   }
@@ -1440,7 +1416,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    *
    * @returns Numero di veicoli con coordinate valide
    */
-  public getVeiclesWithPosition(): number {
+   public getVeiclesWithPosition(): number {
     return this.veicleList().filter(
       (veicle) =>
         veicle.lastPosition && veicle.lastPosition.latitude && veicle.lastPosition.longitude
@@ -1451,23 +1427,20 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    * Conta i veicoli online/attivi (stati che corrispondono ai colori verdi)
    * @returns Numero di veicoli online/attivi
    */
-  public getVeiclesOnline(): number {
-    return this.veicleList().filter((veicle) => {
-      const status = veicle.status?.toLowerCase().trim() || '';
-      // Controllo esatto per evitare che "inactive" venga riconosciuto come "active"
-      return status === 'online' || status === 'active';
-    }).length;
+   public getVeiclesOnline(): number {
+    return this.veicleList().filter((v) => this.normalizeStatus(v.status) === 'active').length;
   }
 
   /**
    * Conta i veicoli offline/inattivi (stati che corrispondono ai colori rossi)
    * @returns Numero di veicoli offline/inattivi
    */
+ 
+
   public getVeiclesOffline(): number {
-    return this.veicleList().filter((veicle) => {
-      const status = veicle.status?.toLowerCase().trim() || '';
-      // Controllo esatto per stati offline/inattivi
-      return status === 'offline' || status === 'inactive';
+    return this.veicleList().filter((v) => {
+      const s = this.normalizeStatus(v.status);
+      return s === 'inactive';
     }).length;
   }
 
@@ -1475,22 +1448,22 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
    * Conta i veicoli in manutenzione (stati che corrispondono ai colori gialli)
    * @returns Numero di veicoli in manutenzione
    */
-  public getVeiclesMaintenance(): number {
+ public getVeiclesMaintenance(): number {
     return this.veicleList().filter((veicle) => {
       const status = veicle.status?.toLowerCase().trim() || '';
       // Controllo esatto per manutenzione
-      return status === 'maintenance' || status === 'manutenzione';
+      return status === 'maintenance' || status === 'Manutenzione';
     }).length;
   }
 
   backToDashboard() {
     console.log('[GENERAL-MAP] Ritorno alla dashboard con cache sincronizzata');
 
-    // Assicura che la cache dashboard sia aggiornata con i dati correnti
-    const currentVehicles = this.veicleList();
-    if (currentVehicles.length > 0) {
-      this.cacheService.syncDashboardFromMap(currentVehicles);
-    }
+    // // Assicura che la cache dashboard sia aggiornata con i dati correnti
+    // const currentVehicles = this.veicleList();
+    // if (currentVehicles.length > 0) {
+    //   this.cacheService.syncDashboardFromMap(currentVehicles);
+    // }
 
     this.router.navigate(['/dashboard']);
   }
