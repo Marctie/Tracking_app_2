@@ -956,5 +956,3 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/dashboard']);
   }
 }
-
-

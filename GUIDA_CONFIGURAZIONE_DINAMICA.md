@@ -1,16 +1,19 @@
 # 🔧 Configurazione Dinamica API - Guida per il Tutor
 
 ## 📋 Panoramica
+
 Il progetto ora supporta la **configurazione dinamica delle API** senza necessità di ricompilazione. Il sistema carica automaticamente la configurazione da un file JSON esterno all'avvio dell'applicazione.
 
 ## 📁 File di Configurazione
 
 ### Posizione
+
 ```
 public/assets/config.json
 ```
 
 ### Struttura
+
 ```json
 {
   "apiBaseUrl": "http://10.0.90.9/stagepeluso/api",
@@ -25,7 +28,7 @@ public/assets/config.json
   "api": {
     "endpoints": {
       "vehicles": "/Vehicles",
-      "positions": "/positions", 
+      "positions": "/positions",
       "users": "/users",
       "auth": "/Auth"
     },
@@ -60,6 +63,7 @@ public/assets/config.json
 ## 🚀 Come Cambiare gli URL delle API
 
 ### 1. **Modifica Rapida (Senza Ricompilazione)**
+
 1. Apri il file `public/assets/config.json`
 2. Modifica il campo `apiBaseUrl`:
    ```json
@@ -74,43 +78,49 @@ public/assets/config.json
 ### 2. **Configurazioni per Diversi Ambienti**
 
 #### Sviluppo (Corrente)
+
 ```json
 "apiBaseUrl": "http://10.0.90.9/stagepeluso/api"
 ```
 
 #### Test
+
 ```json
 "apiBaseUrl": "https://test-api.yourcompany.com/api"
 ```
 
-#### Produzione 
+#### Produzione
+
 ```json
 "apiBaseUrl": "https://production-api.yourcompany.com/api"
 ```
 
 ## 🔧 Parametri Configurabili
 
-| Parametro | Descrizione | Esempio |
-|-----------|-------------|---------|
-| `apiBaseUrl` | URL base per tutte le API | `"https://api.example.com"` |
-| `mqttBrokerUrl` | URL del broker MQTT | `"wss://mqtt.example.com/ws"` |
-| `autoRefreshInterval` | Intervallo aggiornamento (ms) | `5000` (5 secondi) |
-| `environment` | Ambiente di deployment | `"production"` |
-| `features.realTimeUpdates` | Abilita aggiornamenti MQTT | `true/false` |
-| `features.satelliteView` | Abilita vista satellite | `true/false` |
+| Parametro                  | Descrizione                   | Esempio                       |
+| -------------------------- | ----------------------------- | ----------------------------- |
+| `apiBaseUrl`               | URL base per tutte le API     | `"https://api.example.com"`   |
+| `mqttBrokerUrl`            | URL del broker MQTT           | `"wss://mqtt.example.com/ws"` |
+| `autoRefreshInterval`      | Intervallo aggiornamento (ms) | `5000` (5 secondi)            |
+| `environment`              | Ambiente di deployment        | `"production"`                |
+| `features.realTimeUpdates` | Abilita aggiornamenti MQTT    | `true/false`                  |
+| `features.satelliteView`   | Abilita vista satellite       | `true/false`                  |
 
 ## 🏗️ Architettura Implementata
 
 ### 1. **ConfigService**
+
 - Carica `config.json` all'avvio
 - Fornisce accesso centralizzato alle configurazioni
 - Gestisce fallback su valori di default
 
 ### 2. **APP_INITIALIZER**
+
 - Garantisce che la configurazione sia caricata prima dell'avvio
 - Blocca l'inizializzazione fino al caricamento completo
 
 ### 3. **Servizi Aggiornati**
+
 - `VeicleService`: Usa URL dinamici da configurazione
 - `UserService`: Endpoint login/logout configurabili
 - `GeneralMap`: Intervallo di refresh configurabile
@@ -120,6 +130,7 @@ public/assets/config.json
 ### Per il Tutor - Cambio URL in Produzione:
 
 1. **Compila l'applicazione una sola volta:**
+
    ```bash
    npm run build
    ```
@@ -127,6 +138,7 @@ public/assets/config.json
 2. **Deploya i file nella cartella `dist/`**
 
 3. **Per ogni ambiente, modifica solo:**
+
    ```
    dist/assets/config.json
    ```
@@ -134,6 +146,7 @@ public/assets/config.json
 4. **Esempi di configurazione per ambiente:**
 
    **Sviluppo:**
+
    ```json
    {
      "apiBaseUrl": "http://localhost:3000/api",
@@ -142,6 +155,7 @@ public/assets/config.json
    ```
 
    **Test:**
+
    ```json
    {
      "apiBaseUrl": "https://test-api.example.com/api",
@@ -150,6 +164,7 @@ public/assets/config.json
    ```
 
    **Produzione:**
+
    ```json
    {
      "apiBaseUrl": "https://api.example.com/api",
@@ -163,11 +178,12 @@ public/assets/config.json
 ✅ **Deploy Multipli**: Stesso codice, configurazioni diverse  
 ✅ **Configurazione Centralizzata**: Tutti i parametri in un posto  
 ✅ **Fallback Sicuro**: Valori di default se il file non viene trovato  
-✅ **Hot Configuration**: Possibilità di ricaricare la config a runtime  
+✅ **Hot Configuration**: Possibilità di ricaricare la config a runtime
 
 ## 🔍 Verifica Configurazione
 
 ### Nel Browser Console:
+
 ```javascript
 // Verifica configurazione attuale
 console.log('Config caricata:', window.appConfig);
@@ -177,6 +193,7 @@ console.log('API Base URL:', configService.getApiBaseUrl());
 ```
 
 ### Log dell'Applicazione:
+
 ```
 [CONFIG-SERVICE] Configurazione caricata: {environment: "development", ...}
 [VEICLE-SERVICE] Chiamata API a: https://nuovo-server.com/api/Vehicles
@@ -186,15 +203,20 @@ console.log('API Base URL:', configService.getApiBaseUrl());
 ## 🛠️ Troubleshooting
 
 ### Problema: L'app non carica la nuova configurazione
-**Soluzione**: 
+
+**Soluzione**:
+
 1. Verifica che il file `config.json` sia valido (usa un JSON validator)
 2. Controlla i log del browser per errori di caricamento
 3. Assicurati che il file sia accessibile via HTTP
 
 ### Problema: Errori di CORS con nuovo server
-**Soluzione**: 
+
+**Soluzione**:
+
 1. Configura CORS sul nuovo server API
 2. Verifica che il nuovo server accetti richieste dal dominio dell'app
 
 ## 📞 Supporto
+
 Per domande sulla configurazione, verifica i log del browser console e cerca messaggi che iniziano con `[CONFIG-SERVICE]` o `[VEICLE-SERVICE]`.

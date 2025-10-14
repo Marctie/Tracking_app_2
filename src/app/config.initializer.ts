@@ -8,18 +8,21 @@ import { ConfigService } from './services/config.service';
 export function configInitializerFactory(configService: ConfigService): () => Promise<any> {
   return (): Promise<any> => {
     console.log('[CONFIG-INITIALIZER] Inizializzazione configurazione...');
-    
+
     return new Promise((resolve, reject) => {
       configService.loadConfig().subscribe({
         next: (config) => {
-          console.log('[CONFIG-INITIALIZER] Configurazione caricata con successo:', config.environment);
+          console.log(
+            '[CONFIG-INITIALIZER] Configurazione caricata con successo:',
+            config.environment
+          );
           resolve(config);
         },
         error: (error) => {
           console.error('[CONFIG-INITIALIZER] Errore nel caricamento configurazione:', error);
           // Non blocchiamo l'app anche se il config fallisce
           resolve(null);
-        }
+        },
       });
     });
   };
@@ -33,5 +36,5 @@ export const CONFIG_INITIALIZER_PROVIDER = {
   provide: APP_INITIALIZER,
   useFactory: configInitializerFactory,
   deps: [ConfigService],
-  multi: true
+  multi: true,
 };
