@@ -567,7 +567,6 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
       if (this.map) this.addVeicleMarkers(preserveMapView);
     });
   }
-  //FINE COPILOT DA CANCELLARE
 
   private mergeVeiclesWithMqttData(
     dbVeicles: Veicles[],
