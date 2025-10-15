@@ -24,6 +24,9 @@ import { Router } from '@angular/router';
   template: `
     <div class="modal-overlay" (click)="onOverlayClick($event)">
       <div class="alert-container" (click)="$event.stopPropagation()">
+        <!-- Pulsante X in alto a destra -->
+        <button class="close-btn" (click)="close()">&times;</button>
+
         <h1 class="alert-title">{{ titolo }}</h1>
         <p class="alert-text">{{ testo }}</p>
         <div class="modal-body">
@@ -119,9 +122,6 @@ import { Router } from '@angular/router';
             }
           </div>
           <!--</div>-->
-        </div>
-        <div class="actions">
-          <button class="blackbtn" (click)="close()">Close</button>
         </div>
       </div>
       <!--</div>-->
@@ -346,6 +346,34 @@ tr {
   background: #374151;
   transform: translateY(-1px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Pulsante chiudi (X) in alto a destra */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  color: #666;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+  border-color: #d1d1d1;
+  transform: scale(1.05);
 }
 
 .refresh-btn {
