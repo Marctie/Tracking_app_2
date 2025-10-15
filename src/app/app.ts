@@ -61,7 +61,7 @@ export class App implements OnInit {
         const message: VeiclePosition = JSON.parse(response.payload.toString());
         console.log('MQTT messaggio ricevuto:', message);
 
-        // 1. Salva nel localStorage (come prima)
+        // 1. Salva nel localStorage 
         const rawLista = localStorage.getItem('lista');
         let lista: VeiclePosition[] = rawLista ? JSON.parse(rawLista) : [];
 
@@ -76,7 +76,7 @@ export class App implements OnInit {
         //   console.log('Posizione salvata per veicolo:', message.vehicleId);
         // }
 
-        // 2. NUOVO: Aggiorna anche il signal del servizio MQTT per uso immediato
+        // 2. Aggiorna anche il signal del servizio MQTT per uso immediato
         this.updateMqttServiceSignal(lista);
       },
       error: (error) => {
