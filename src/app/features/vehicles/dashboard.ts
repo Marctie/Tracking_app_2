@@ -2,6 +2,7 @@ import {
   AfterViewChecked,
   Component,
   OnChanges,
+  OnDestroy,
   OnInit,
   SimpleChanges,
   ViewChild,
@@ -92,7 +93,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
             </tr>
             } } } @else {
             <!-- Paginated vehicles normally -->
-            @for (item of paginatedVeicles(); track item.id) {
+            @for (item of vehiclesWithLiveStatus(); track item.id) {
             <!-- Loop through vehicle property chunks -->
             @for (chunk of chunkKeys(recoveryVeicleKeys(item), 7); track $index) {
             <tr>
@@ -640,7 +641,7 @@ import { VehicleCacheService } from '../../services/vehicle-cache.service';
   }
   `,
 })
-export class Dashboard implements OnInit {
+export class Dashboard implements OnInit, OnDestroy {
   @ViewChild('selectFilter') selectFilterComponent!: SelectFilter;
 
   showModal = signal(false);
@@ -704,6 +705,27 @@ export class Dashboard implements OnInit {
 
   value = signal<IFilter>({} as IFilter);
 
+  // Signal computed che unisce automaticamente veicoli con stati MQTT più recenti
+  vehiclesWithLiveStatus = computed(() => {
+    const vehicles = this.paginatedVeicles();
+    const statusesById = this.mqttService.statusById();
+
+    if (Object.keys(statusesById).length === 0) {
+      return vehicles; // Nessun stato MQTT disponibile, restituisce veicoli originali
+    }
+
+    return vehicles.map((vehicle) => {
+      const mqttStatus = statusesById[vehicle.id];
+      if (mqttStatus && mqttStatus.status && mqttStatus.status !== vehicle.status) {
+        console.log(
+          `[COMPUTED] Updating vehicle ${vehicle.licensePlate} status from ${vehicle.status} to ${mqttStatus.status}`
+        );
+        return { ...vehicle, status: mqttStatus.status };
+      }
+      return vehicle;
+    });
+  });
+
   constructor() {
     effect(() => {
       this.userLogin.login.name;
@@ -717,7 +739,20 @@ export class Dashboard implements OnInit {
     // Effect per aggiornamenti live degli stati via MQTT
     effect(() => {
       const mqttPositions = this.mqttService.positionVeiclesList();
-      if (mqttPositions.length > 0 && this.veicleList().length > 0) {
+      const statusesById = this.mqttService.statusById();
+
+      console.log(
+        '[DASHBOARD EFFECT] Triggered - Positions:',
+        mqttPositions.length,
+        'StatusesById:',
+        Object.keys(statusesById).length
+      );
+      console.log('[DASHBOARD EFFECT] Current statusesById:', statusesById);
+
+      if (
+        (mqttPositions.length > 0 || Object.keys(statusesById).length > 0) &&
+        this.veicleList().length > 0
+      ) {
         console.log('[DASHBOARD] Rilevato aggiornamento MQTT - aggiornamento stati veicoli');
         this.updateVehicleStatesFromMqtt(mqttPositions);
       }
@@ -728,6 +763,20 @@ export class Dashboard implements OnInit {
     console.log('[DASHBOARD] Inizializzazione componente dashboard');
     this.loadVeicles();
     this.loadUserName();
+
+    // Sottoscrizione ai messaggi di stato MQTT (come in general-map)
+    this.mqttService.subscribeAndTrack('vehicles/+/status', (msg) => {
+      const payload = msg.payload.toString();
+      console.log('[DASHBOARD] MQTT message received (status):', payload);
+      console.log('[DASHBOARD] Message topic:', msg.topic);
+
+      // Ingesta il messaggio di stato per aggiornare statusById
+      this.mqttService.ingestStatusMessage(msg);
+
+      // Log dello stato dopo l'ingestione
+      console.log('[DASHBOARD] StatusesById after ingestion:', this.mqttService.statusById());
+    });
+
     //TEST da cancellare
     // this.veicleService.getAnimali();
   }
@@ -1313,38 +1362,64 @@ export class Dashboard implements OnInit {
   //  Metodo per aggiornare gli stati dei veicoli in tempo reale via MQTT
   private updateVehicleStatesFromMqtt(mqttPositions: any[]): void {
     const currentVehicles = this.veicleList();
+    const statusesById = this.mqttService.statusById(); // ← stati correnti come in general-map
     let updatedCount = 0;
+
+    console.log('[DASHBOARD UPDATE] Current vehicles:', currentVehicles.length);
+    console.log('[DASHBOARD UPDATE] StatusesById available:', Object.keys(statusesById));
 
     // Crea una nuova lista di veicoli con stati aggiornati
     const updatedVehicles = currentVehicles.map((vehicle) => {
-      // Cerca i dati MQTT per questo veicolo
-      const mqttData = mqttPositions.find((mqtt) => mqtt.vehicleId === vehicle.id);
+      // Cerca lo stato MQTT per questo veicolo usando statusById
+      const mqttStatus = statusesById[vehicle.id];
 
-      if (mqttData && mqttData.status && mqttData.status !== vehicle.status) {
+      console.log(
+        `[DASHBOARD UPDATE] Vehicle ID ${vehicle.id} (${vehicle.licensePlate}): current status="${
+          vehicle.status
+        }", MQTT status="${mqttStatus?.status || 'none'}"`
+      );
+
+      if (mqttStatus && mqttStatus.status) {
+        if (mqttStatus.status === vehicle.status) {
+          console.log(
+            `[DASHBOARD UPDATE] ✓ Vehicle ${vehicle.licensePlate} - Stati identici, nessun aggiornamento necessario`
+          );
+        } else {
+          console.log(
+            `[DASHBOARD UPDATE] ⚡ Vehicle ${vehicle.licensePlate} - CAMBIO STATO RILEVATO! Da "${vehicle.status}" a "${mqttStatus.status}"`
+          );
+        }
+      }
+
+      if (mqttStatus && mqttStatus.status && mqttStatus.status !== vehicle.status) {
         console.log(
           '[DASHBOARD] Aggiornamento stato live per veicolo:',
           vehicle.licensePlate,
           'da',
           vehicle.status,
           'a',
-          mqttData.status
+          mqttStatus.status
         );
         updatedCount++;
 
         // Restituisce il veicolo con lo stato aggiornato
+        const positionData = mqttPositions.find((mqtt) => mqtt.vehicleId === vehicle.id);
         return {
           ...vehicle,
-          status: mqttData.status,
-          // Aggiorna anche la posizione se disponibile
+          status: mqttStatus.status,
+          // Aggiorna anche la posizione se disponibile tramite mqttPositions
           lastPosition:
-            mqttData.timestamp && mqttData.latitude && mqttData.longitude
+            positionData &&
+            positionData.timestamp &&
+            positionData.latitude &&
+            positionData.longitude
               ? {
                   ...vehicle.lastPosition,
-                  latitude: mqttData.latitude,
-                  longitude: mqttData.longitude,
-                  speed: mqttData.speed || vehicle.lastPosition?.speed || 0,
-                  heading: mqttData.heading || vehicle.lastPosition?.heading || 0,
-                  timestamp: mqttData.timestamp,
+                  latitude: positionData.latitude,
+                  longitude: positionData.longitude,
+                  speed: positionData.speed || vehicle.lastPosition?.speed || 0,
+                  heading: positionData.heading || vehicle.lastPosition?.heading || 0,
+                  timestamp: positionData.timestamp,
                 }
               : vehicle.lastPosition,
         };
@@ -1358,12 +1433,24 @@ export class Dashboard implements OnInit {
       console.log('[DASHBOARD] Aggiornati', updatedCount, 'stati di veicoli via MQTT');
       this.veicleList.set(updatedVehicles);
 
+      // Aggiorna anche paginatedVeicles che viene usato nel template
+      this.paginatedVeicles.set(updatedVehicles);
+
+      // Aggiorna la cache per mantenere la coerenza
+      this.cacheService.saveDashboardData({
+        items: updatedVehicles,
+        totalPages: this.totalPages(),
+        totalCount: this.totalCount(),
+        page: this.currentPage(),
+        pageSize: this.itemsPerPage,
+      });
+
       // Se siamo in modalità ricerca globale, aggiorna anche quella lista
       if (this.isGlobalSearchActive()) {
         const updatedAllVehicles = this.allVeicles().map((vehicle) => {
-          const mqttData = mqttPositions.find((mqtt) => mqtt.vehicleId === vehicle.id);
-          if (mqttData && mqttData.status && mqttData.status !== vehicle.status) {
-            return { ...vehicle, status: mqttData.status };
+          const mqttStatus = statusesById[vehicle.id];
+          if (mqttStatus && mqttStatus.status && mqttStatus.status !== vehicle.status) {
+            return { ...vehicle, status: mqttStatus.status };
           }
           return vehicle;
         });
@@ -1378,5 +1465,10 @@ export class Dashboard implements OnInit {
       this.showModal.set(false);
       console.log('[DASHBOARD] Modal chiuso tramite click esterno');
     }
+  }
+
+  ngOnDestroy() {
+    // Pulisce le sottoscrizioni MQTT quando il componente viene distrutto
+    console.log('[DASHBOARD] Distruggendo componente - pulizia sottoscrizioni MQTT');
   }
 }
