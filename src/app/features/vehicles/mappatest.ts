@@ -13,6 +13,8 @@ import { MyMqttService } from '../../services/mymqtt-service';
 import { VeicleService } from '../../services/veicle-service';
 import { Veicles } from '../../models/veicles';
 import { VeiclePosition } from '../../models/veicle-position';
+import { StreamingTestComponent } from './streaming-test.component';
+import { TestStreamCamComponent } from "./teststreamcam";
 
 /**
  * Componente per la visualizzazione dei veicoli su mappa in tempo reale
@@ -32,7 +34,7 @@ import { VeiclePosition } from '../../models/veicle-position';
  */
 @Component({
   selector: 'app-mappatest',
-  imports: [],
+  imports: [StreamingTestComponent, TestStreamCamComponent],
   template: `
     <div class="map-container">
       <!-- Header della mappa con titolo e controlli -->
@@ -56,7 +58,8 @@ import { VeiclePosition } from '../../models/veicle-position';
           reale. I marker colorati indicano lo stato di ogni veicolo.
         </p>
       </div>
-
+      <app-streaming-test [vehicleId]="2"></app-streaming-test>
+      <app-teststreamcam [vehicleId]="4"></app-teststreamcam>
       <!-- Statistiche veicoli con info MQTT -->
       <div class="stats-section">
         <div class="stats-grid">

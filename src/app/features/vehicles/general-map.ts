@@ -1167,7 +1167,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-
+ 
 
   /**
    * Helper method to count vehicles by specific statuses (for debugging)

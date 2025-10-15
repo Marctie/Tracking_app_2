@@ -9,9 +9,8 @@ import { Subscription } from 'rxjs';
   imports: [CommonModule],
   template: `
     <div class="streaming-test-container">
-      <h3>Video Streaming Test</h3>
+      <h3>Video Streaming Test da Vedere</h3>
 
-      <!-- Status Indicator -->
       <div class="status-section">
         <div class="status-indicator" [class]="getStatusClass()">
           <span class="status-dot"></span>
@@ -19,7 +18,7 @@ import { Subscription } from 'rxjs';
         </div>
 
         @if (streamError()) {
-        <div class="error-message">marco non funziona {{ streamError() }}</div>
+        <div class="error-message">❌ Errore: {{ streamError() }}</div>
         }
       </div>
 
@@ -32,7 +31,7 @@ import { Subscription } from 'rxjs';
           [class.loading]="isLoading() && streamStatus() === 'starting'"
         >
           @if (isLoading() && streamStatus() === 'starting') {
-          <span class="spinner"></span> Starting... } @else { Start Stream }
+          <span class="spinner"></span> Avvio... } @else { 🎬 Avvia Stream }
         </button>
 
         <button
@@ -42,40 +41,40 @@ import { Subscription } from 'rxjs';
           [class.loading]="isLoading() && streamStatus() === 'stopping'"
         >
           @if (isLoading() && streamStatus() === 'stopping') {
-          <span class="spinner"></span> Stopping... } @else { ⏹ Stop Stream }
+          <span class="spinner"></span> Fermando... } @else { ⏹️ Ferma Stream }
         </button>
 
         <button class="btn status-btn" (click)="checkStatus()" [disabled]="isLoading()">
-          Check Status
+          🔍 Controlla Stato
         </button>
       </div>
 
       <!-- Stream Info -->
       @if (streamData()) {
       <div class="stream-info">
-        <h4>Stream Information</h4>
+        <h4>📡 Informazioni Stream</h4>
         <div class="info-grid">
           <div class="info-item">
-            <label>Vehicle ID:</label>
+            <label>ID Veicolo:</label>
             <span>{{ streamData()?.data?.vehicleId }}</span>
           </div>
           <div class="info-item">
-            <label>Started At:</label>
+            <label>Avviato alle:</label>
             <span>{{ formatDate(streamData()?.data?.startedAt) }}</span>
           </div>
           <div class="info-item">
-            <label>Expires At:</label>
+            <label>Scade alle:</label>
             <span>{{ formatDate(streamData()?.data?.expiresAt) }}</span>
           </div>
           <div class="info-item">
-            <label>Duration:</label>
+            <label>Durata:</label>
             <span>{{ streamData()?.data?.durationSeconds }}s</span>
           </div>
         </div>
 
         <!-- Stream URLs -->
         <div class="urls-section">
-          <h5>Stream URLs:</h5>
+          <h5>📺 URL Stream:</h5>
           <div class="url-list">
             @if (streamData()?.data?.urls?.hls) {
             <div class="url-item">
@@ -98,8 +97,8 @@ import { Subscription } from 'rxjs';
           </div>
         </div>
 
-        <!-- Player Configuration -->
-        @if (streamData()?.data?.playerConfig) {
+        <!-- Player  -->
+        <!-- @if (streamData()?.data?.playerConfig) {
         <div class="player-config">
           <h5>Player Config:</h5>
           <div class="config-item">
@@ -113,28 +112,7 @@ import { Subscription } from 'rxjs';
           </div>
           }
         </div>
-        }
-      </div>
-      }
-
-      <!-- Test Video Player (se disponibile HLS) -->
-      @if (streamData()?.data?.urls?.hls && isStreamActive()) {
-      <div class="video-player-section">
-        <h4>Test Player</h4>
-        <video
-          #videoPlayer
-          class="test-video"
-          controls
-          autoplay
-          muted
-          [src]="streamData()?.data?.urls?.hls"
-        >
-          Your browser does not support the video tag.
-        </video>
-        <p class="video-note">
-          💡 <strong>Note:</strong> This is a basic HTML5 video player. For production, consider
-          using specialized HLS players like Video.js or HLS.js
-        </p>
+        } -->
       </div>
       }
     </div>
@@ -458,19 +436,19 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
   startStream() {
     if (this.isLoading() || this.isStreamActive()) return;
 
-    console.log('[STREAMING-TEST] Starting stream for vehicle:', this.vehicleId());
+    console.log('[STREAMING-TEST] Avvio stream per veicolo:', this.vehicleId());
 
     this.streamError.set(null);
 
     this.streamingService.startStreaming(this.vehicleId(), 300).subscribe({
       next: (response) => {
-        console.log('[STREAMING-TEST] Stream started:', response);
+        console.log('[STREAMING-TEST] Stream avviato con successo:', response);
         this.streamData.set(response);
         this.isStreamActive.set(true);
       },
       error: (error) => {
-        console.error('[STREAMING-TEST] Start stream error:', error);
-        this.streamError.set(error.message || 'Failed to start stream');
+        console.error('[STREAMING-TEST] Errore avvio stream:', error);
+        this.streamError.set(error.message || 'Impossibile avviare lo stream');
       },
     });
   }
@@ -478,34 +456,34 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
   stopStream() {
     if (!this.isStreamActive() || this.isLoading()) return;
 
-    console.log('[STREAMING-TEST] Stopping stream for vehicle:', this.vehicleId());
+    console.log('[STREAMING-TEST] Fermando stream per veicolo:', this.vehicleId());
 
     this.streamingService.stopStreaming(this.vehicleId()).subscribe({
       next: (response) => {
-        console.log('[STREAMING-TEST] Stream stopped:', response);
+        console.log('[STREAMING-TEST] Stream fermato con successo:', response);
         this.streamData.set(null);
         this.isStreamActive.set(false);
         this.streamError.set(null);
       },
       error: (error) => {
-        console.error('[STREAMING-TEST] Stop stream error:', error);
-        this.streamError.set(error.message || 'Failed to stop stream');
+        console.error('[STREAMING-TEST] Errore nel fermare lo stream:', error);
+        this.streamError.set(error.message || 'Impossibile fermare lo stream');
       },
     });
   }
 
   checkStatus() {
-    console.log('[STREAMING-TEST] Checking stream status for vehicle:', this.vehicleId());
+    console.log('[STREAMING-TEST] Controllo stato stream per veicolo:', this.vehicleId());
 
     this.streamingService.getStreamingStatus(this.vehicleId()).subscribe({
       next: (response) => {
-        console.log('[STREAMING-TEST] Stream status:', response);
+        console.log('[STREAMING-TEST] Stato stream ricevuto:', response);
         // Aggiorna lo stato basato sulla risposta
         this.syncWithService();
       },
       error: (error) => {
-        console.error('[STREAMING-TEST] Status check error:', error);
-        this.streamError.set(error.message || 'Failed to check status');
+        console.error('[STREAMING-TEST] Errore nel controllo dello stato:', error);
+        this.streamError.set(error.message || 'Impossibile controllare lo stato');
       },
     });
   }
@@ -517,22 +495,22 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
   getStatusText(): string {
     switch (this.streamStatus()) {
       case 'idle':
-        return 'Stream Inactive';
+        return 'Stream Inattivo';
       case 'starting':
-        return 'Starting Stream...';
+        return 'Avvio Stream...';
       case 'active':
-        return 'Stream Active';
+        return 'Stream Attivo';
       case 'stopping':
-        return 'Stopping Stream...';
+        return 'Fermo Stream...';
       case 'error':
-        return 'Stream Error';
+        return 'Errore Stream';
       default:
-        return 'Unknown Status';
+        return 'Stato Sconosciuto';
     }
   }
 
   formatDate(date: Date | string | undefined): string {
-    if (!date) return 'N/A';
+    if (!date) return 'N/D';
 
     try {
       const d = new Date(date);
@@ -545,7 +523,7 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
         second: '2-digit',
       });
     } catch {
-      return 'Invalid Date';
+      return 'Data Non Valida';
     }
   }
 }

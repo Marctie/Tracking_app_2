@@ -24,11 +24,7 @@ export class StreamingService {
 
   constructor() {}
 
-  /**
-   * Avvia lo streaming per un veicolo specifico
-   * @param vehicleId - ID del veicolo
-   * @param durationSeconds - Durata dello streaming in secondi (opzionale)
-   * @returns Observable con i dati dello streaming
+  /** Avvia lo streaming per un veicolo specifico
    */
   startStreaming(vehicleId: number, durationSeconds?: number): Observable<IStreaming> {
     const url = this.configService.getApiUrl('streamStart');
@@ -71,8 +67,7 @@ export class StreamingService {
 
   /**
    * Ferma lo streaming per un veicolo specifico
-   * @param vehicleId - ID del veicolo
-   * @returns Observable con la conferma di stop
+   * Observable con la conferma di stop
    */
   stopStreaming(vehicleId: number): Observable<any> {
     const url = this.configService.getApiUrl('streamStop');
@@ -109,8 +104,7 @@ export class StreamingService {
 
   /**
    * Verifica lo stato dello streaming per un veicolo
-   * @param vehicleId - ID del veicolo
-   * @returns Observable con lo stato dello streaming
+   * Observable con lo stato dello streaming
    */
   getStreamingStatus(vehicleId: number): Observable<any> {
     const url = this.configService.getApiUrl('streamStatus');
@@ -132,23 +126,17 @@ export class StreamingService {
     console.log('[STREAMING-SERVICE] State reset');
   }
 
-  /**
-   * Ottiene i dati dello stream corrente
-   */
+ 
   getCurrentStreamData(): IStreaming | null {
     return this.currentStreamData();
   }
 
-  /**
-   * Verifica se è attivo uno streaming
-   */
+
   getIsStreamActive(): boolean {
     return this.isStreamActive();
   }
 
-  /**
-   * Ottiene l'eventuale errore corrente
-   */
+
   getStreamError(): string | null {
     return this.streamError();
   }
