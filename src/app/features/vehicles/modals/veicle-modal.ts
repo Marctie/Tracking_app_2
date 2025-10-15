@@ -17,14 +17,14 @@ import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { MyMqttService } from '../../../services/mymqtt-service';
 import { Router } from '@angular/router';
+import { StreamingTestComponent } from '../streaming-test.component';
 
 @Component({
   selector: 'app-veiclemodal',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StreamingTestComponent],
   template: `
     <div class="modal-overlay" (click)="onOverlayClick($event)">
       <div class="alert-container" (click)="$event.stopPropagation()">
-        <!-- Pulsante X in alto a destra -->
         <button class="close-btn" (click)="close()">&times;</button>
 
         <h1 class="alert-title">{{ titolo }}</h1>
@@ -118,6 +118,9 @@ import { Router } from '@angular/router';
               <br />
 
               <button class="refresh-btn" (click)="refreshVeicles()">Refresh position</button>
+
+              <!--  Streaming -->
+              <!-- <app-streaming-test [vehicleId]="selectedVeicle()!.id"></app-streaming-test> -->
             </div>
             }
           </div>
