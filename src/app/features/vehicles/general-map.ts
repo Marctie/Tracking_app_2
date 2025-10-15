@@ -1167,44 +1167,7 @@ export class GeneralMap implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /**
-   * COMMENTED METHOD - LocalStorage no longer used
-   * Search for vehicle position in localStorage
-   * @param vehicleId - Vehicle ID to search for
-   * @returns MQTT position if found, null otherwise
-   */
-  /*
-  private getMqttPositionFromLocalStorage(vehicleId: any): any {
-    try {
-      // Try first with vehicle ID as key
-      let storedPosition = localStorage.getItem(vehicleId.toString());
- 
-      if (storedPosition) {
-        const position = JSON.parse(storedPosition);
-        console.log(`Position found in localStorage for vehicle ID ${vehicleId}`);
-        return position;
-      }
- 
-      // Se non trovato, prova con la lista generale MQTT
-      const mqttListData = localStorage.getItem('lista');
-      if (mqttListData) {
-        const mqttList = JSON.parse(mqttListData);
-        const position = mqttList.find((pos: any) => pos.vehicleId === vehicleId);
- 
-        if (position) {
-          console.log(`Position found in MQTT list for vehicle ID ${vehicleId}`);
-          return position;
-        }
-      }
- 
-      console.log(`No position in localStorage for vehicle ID ${vehicleId}`);
-      return null;
-    } catch (error) {
-      console.error('Errore leggendo localStorage:', error);
-      return null;
-    }
-  }
-  */
+
 
   /**
    * Helper method to count vehicles by specific statuses (for debugging)
