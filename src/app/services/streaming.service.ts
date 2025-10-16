@@ -36,6 +36,7 @@ export class StreamingService {
     }
 
     console.log('[STREAMING-SERVICE] Starting stream for vehicle:', vehicleId);
+    console.log('[STREAMING-SERVICE] URL:', `${url}?${params.toString()}`);
 
     this.streamStatusSubject.next('starting');
     this.streamError.set(null);
@@ -126,16 +127,13 @@ export class StreamingService {
     console.log('[STREAMING-SERVICE] State reset');
   }
 
- 
   getCurrentStreamData(): IStreaming | null {
     return this.currentStreamData();
   }
 
-
   getIsStreamActive(): boolean {
     return this.isStreamActive();
   }
-
 
   getStreamError(): string | null {
     return this.streamError();

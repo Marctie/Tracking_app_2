@@ -58,8 +58,8 @@ import { TestStreamCamComponent } from "./teststreamcam";
           reale. I marker colorati indicano lo stato di ogni veicolo.
         </p>
       </div>
-      <app-streaming-test [vehicleId]="2"></app-streaming-test>
-      <app-teststreamcam [vehicleId]="4"></app-teststreamcam>
+      <!-- <app-streaming-test [vehicleId]="2"></app-streaming-test> -->
+  <app-teststreamcam [vehicleId]="2" ></app-teststreamcam>
       <!-- Statistiche veicoli con info MQTT -->
       <div class="stats-section">
         <div class="stats-grid">

@@ -12,7 +12,6 @@
       "users": "/api/users",
       "auth": "/api/Auth",
         "logout": "/api/Auth/logout",
-
         "streamStart": "/api/Streaming/start",
         "streamStop": "/api/Streaming/stop",
         "streamStatus":"/api/Streaming/status"

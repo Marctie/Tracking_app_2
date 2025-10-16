@@ -1,4 +1,13 @@
-import { Component, inject, input, OnDestroy, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  input,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StreamingService } from '../../services/streaming.service';
 import { IStreaming } from '../../models/stream';
@@ -18,7 +27,7 @@ import { Subscription } from 'rxjs';
         </div>
 
         @if (streamError()) {
-        <div class="error-message">❌ Errore: {{ streamError() }}</div>
+        <div class="error-message">Error: {{ streamError() }}</div>
         }
       </div>
 
@@ -97,22 +106,52 @@ import { Subscription } from 'rxjs';
           </div>
         </div>
 
-        <!-- Player  -->
-        <!-- @if (streamData()?.data?.playerConfig) {
-        <div class="player-config">
-          <h5>Player Config:</h5>
-          <div class="config-item">
-            <label>Recommended Player:</label>
-            <span>{{ streamData()?.data?.playerConfig?.recommendedPlayer }}</span>
+        <!-- Video Player HLS -->
+        @if (streamData()?.data?.urls?.hls && isStreamActive()) {
+        <div class="video-player-section">
+          <h5>📺 Player Video Stream</h5>
+          <div class="video-container">
+            <video
+              #videoPlayer
+              controls
+              autoplay
+              muted
+              class="hls-video-player"
+              width="800"
+              height="450"
+              [src]="streamData()?.data?.urls?.hls"
+              (loadstart)="onVideoLoadStart()"
+              (loadeddata)="onVideoLoaded()"
+              (error)="onVideoError($event)"
+              (canplay)="onVideoCanPlay()"
+            >
+              Il tuo browser non supporta il player video HTML5.
+              <p>
+                Prova ad aprire l'URL direttamente:
+                <a [href]="streamData()?.data?.urls?.hls" target="_blank">
+                  {{ streamData()?.data?.urls?.hls }}
+                </a>
+              </p>
+            </video>
+
+            <div class="video-controls-info">
+              <p class="video-note">
+                <strong>Note:</strong> Questo è un player HLS nativo. Se il video non si carica,
+                potrebbe essere necessario un player HLS specializzato come hls.js per una migliore
+                compatibilità cross-browser.
+              </p>
+
+              @if (videoStatus()) {
+              <div class="video-status">
+                <span class="status-indicator" [class]="videoStatus()">
+                  {{ getVideoStatusText() }}
+                </span>
+              </div>
+              }
+            </div>
           </div>
-          @if (streamData()?.data?.playerConfig?.hls) {
-          <div class="config-item">
-            <label>HLS AutoPlay:</label>
-            <span>{{ streamData()?.data?.playerConfig?.hls?.autoPlay ? 'Yes' : 'No' }}</span>
-          </div>
-          }
         </div>
-        } -->
+        }
       </div>
       }
     </div>
@@ -353,6 +392,78 @@ import { Subscription } from 'rxjs';
       padding: 20px;
       border-radius: 8px;
       border: 1px solid #dee2e6;
+      margin-top: 20px;
+    }
+
+    .video-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .hls-video-player {
+      width: 100%;
+      max-width: 800px;
+      height: auto;
+      border-radius: 8px;
+      background: #000;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .video-controls-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .video-note {
+      margin: 0;
+      padding: 12px;
+      background: #e3f2fd;
+      border-radius: 6px;
+      color: #1565c0;
+      font-size: 0.9rem;
+      border-left: 4px solid #2196f3;
+    }
+
+    .video-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .video-status .status-indicator {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .video-status .status-indicator.loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .video-status .status-indicator.ready {
+      background: #d1edff;
+      color: #0c5460;
+    }
+
+    .video-status .status-indicator.playing {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .video-status .status-indicator.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .video-player-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
     }
 
     .test-video {
@@ -402,15 +513,20 @@ import { Subscription } from 'rxjs';
 export class StreamingTestComponent implements OnInit, OnDestroy {
   vehicleId = input.required<number>();
 
+  @ViewChild('videoPlayer', { static: false }) videoPlayer?: ElementRef<HTMLVideoElement>;
+
   private streamingService = inject(StreamingService);
   private statusSubscription?: Subscription;
 
-  // Signals
+  // Signals per streaming
   isStreamActive = signal(false);
   streamData = signal<IStreaming | null>(null);
   streamError = signal<string | null>(null);
   streamStatus = signal<'idle' | 'starting' | 'active' | 'stopping' | 'error'>('idle');
   isLoading = signal(false);
+
+  // Signals per video player
+  videoStatus = signal<'loading' | 'ready' | 'playing' | 'error' | null>(null);
 
   ngOnInit() {
     // Sottoscrizione al status del servizio
@@ -439,6 +555,7 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
     console.log('[STREAMING-TEST] Avvio stream per veicolo:', this.vehicleId());
 
     this.streamError.set(null);
+    this.videoStatus.set(null);
 
     this.streamingService.startStreaming(this.vehicleId(), 300).subscribe({
       next: (response) => {
@@ -449,6 +566,7 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('[STREAMING-TEST] Errore avvio stream:', error);
         this.streamError.set(error.message || 'Impossibile avviare lo stream');
+        this.videoStatus.set('error');
       },
     });
   }
@@ -464,6 +582,7 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
         this.streamData.set(null);
         this.isStreamActive.set(false);
         this.streamError.set(null);
+        this.videoStatus.set(null);
       },
       error: (error) => {
         console.error('[STREAMING-TEST] Errore nel fermare lo stream:', error);
@@ -478,7 +597,6 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
     this.streamingService.getStreamingStatus(this.vehicleId()).subscribe({
       next: (response) => {
         console.log('[STREAMING-TEST] Stato stream ricevuto:', response);
-        // Aggiorna lo stato basato sulla risposta
         this.syncWithService();
       },
       error: (error) => {
@@ -486,6 +604,65 @@ export class StreamingTestComponent implements OnInit, OnDestroy {
         this.streamError.set(error.message || 'Impossibile controllare lo stato');
       },
     });
+  }
+
+  // Metodi per gestire gli eventi del video player
+  onVideoLoadStart() {
+    console.log('[VIDEO-PLAYER] Inizio caricamento video');
+    this.videoStatus.set('loading');
+  }
+
+  onVideoLoaded() {
+    console.log('[VIDEO-PLAYER] Video caricato con successo');
+    this.videoStatus.set('ready');
+  }
+
+  onVideoCanPlay() {
+    console.log('[VIDEO-PLAYER] Video pronto per la riproduzione');
+    this.videoStatus.set('playing');
+  }
+
+  onVideoError(event: any) {
+    console.error('[VIDEO-PLAYER] Errore nel video:', event);
+    this.videoStatus.set('error');
+
+    // Aggiungi informazioni specifiche sull'errore video
+    const videoError = event.target?.error;
+    if (videoError) {
+      let errorMessage = 'Errore nel player video';
+      switch (videoError.code) {
+        case 1:
+          errorMessage = "Riproduzione video interrotta dall'utente";
+          break;
+        case 2:
+          errorMessage = 'Errore di rete durante il caricamento del video';
+          break;
+        case 3:
+          errorMessage = 'Errore di decodifica video';
+          break;
+        case 4:
+          errorMessage = 'Formato video non supportato';
+          break;
+        default:
+          errorMessage = `Errore video sconosciuto (codice: ${videoError.code})`;
+      }
+      this.streamError.set(errorMessage);
+    }
+  }
+
+  getVideoStatusText(): string {
+    switch (this.videoStatus()) {
+      case 'loading':
+        return 'Caricamento video...';
+      case 'ready':
+        return 'Video pronto';
+      case 'playing':
+        return 'Video in riproduzione';
+      case 'error':
+        return 'Errore video';
+      default:
+        return '';
+    }
   }
 
   getStatusClass(): string {
