@@ -15,6 +15,14 @@ export class ConfigService {
   private defaultConfig: AppConfig = {
     apiBaseUrl: 'http://localhost:3000/api',
     mqttBrokerUrl: 'ws://localhost:8083/mqtt',
+    // Configurazione MQTT di default
+    keepalive: 120,
+    port: 443,
+    path: '/ws',
+    protocol: 'wss',
+    username: 'intellitronika',
+    password: 'intellitronika',
+    hostname: 'rabbitmq.test.intellitronika.com',
     features: {
       realTimeUpdates: true,
       autoRefreshInterval: 5000,
@@ -25,6 +33,7 @@ export class ConfigService {
         positions: '/positions',
         users: '/users',
         auth: '/auth',
+        logout: '/auth/logout',
         streamStart: '/streaming/start',
         streamStop: '/streaming/stop',
         streamStatus: '/streaming/status',
@@ -107,6 +116,22 @@ export class ConfigService {
    */
   getMqttBrokerUrl(): string {
     return this.getConfig().mqttBrokerUrl;
+  }
+
+  /**
+   * Ottieni le opzioni MQTT nel formato richiesto da ngx-mqtt
+   */
+  getMqttServiceOptions() {
+    const config = this.getConfig();
+    return {
+      keepalive: config.keepalive,
+      port: config.port,
+      path: config.path,
+      protocol: config.protocol,
+      username: config.username,
+      password: config.password,
+      hostname: config.hostname,
+    };
   }
 
   /**

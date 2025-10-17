@@ -1,6 +1,13 @@
 {
   "apiBaseUrl": "http://10.0.90.9/Stage/TrackingApp",
   "mqttBrokerUrl": "wss://rabbitmq.test.intellitronika.com/ws",
+    "keepalive": 120,
+  "port": 443,
+  "path": "/ws", 
+  "protocol": "wss",
+  "username": "intellitronika",
+  "password": "intellitronika",
+  "hostname": "rabbitmq.test.intellitronika.com",
   "features": {
     "realTimeUpdates": true,
     "autoRefreshInterval": 5000

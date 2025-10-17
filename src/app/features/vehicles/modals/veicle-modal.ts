@@ -120,7 +120,8 @@ import { StreamingTestComponent } from '../streaming-test.component';
               <button class="refresh-btn" (click)="refreshVeicles()">Refresh position</button>
 
               <!--  Streaming -->
-                <app-streaming-test [vehicleId]="selectedVeicle()!.id"></app-streaming-test>  
+                <app-streaming-test 
+                [vehicleId]="selectedVeicle()!.id"></app-streaming-test>  
             </div>
             }
           </div>
